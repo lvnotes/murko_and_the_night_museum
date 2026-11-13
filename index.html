@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мурко і Ніч у музеї</title>
+<style>
+/* шрифт лежить поруч у папці fonts — працює і без інтернету */
+@font-face{font-family:Nunito;font-weight:600 700;font-display:swap;src:url(fonts/nunito-cyrillic-600-normal.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Nunito;font-weight:600 700;font-display:swap;src:url(fonts/nunito-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF,U+2212}
+@font-face{font-family:Nunito;font-weight:800 900;font-display:swap;src:url(fonts/nunito-cyrillic-800-normal.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:Nunito;font-weight:800 900;font-display:swap;src:url(fonts/nunito-latin-800-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF,U+2212}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d0b18;font-family:"Nunito","Segoe UI",Arial,sans-serif;-webkit-user-select:none;user-select:none}
+#stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0;overflow:hidden;background:#1c1838}
+#bg,#props,#cast,#hud,#card,#dlg,#fx{position:absolute}
+#bg{inset:0}
+#bg svg,#bg img{position:absolute;left:0;top:0;width:1600px;height:900px;display:block}
+#props{inset:0;pointer-events:none}
+#props>*{pointer-events:auto}
+#cast{inset:0;pointer-events:none}
+.ch{position:absolute;bottom:118px;transform:translateX(-50%);opacity:0;transition:opacity .45s,filter .3s;filter:brightness(.78) saturate(.9);will-change:opacity}
+.ch.on{opacity:1}
+.shd{position:absolute;bottom:100px;height:40px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse at center,rgba(20,10,5,.55) 0%,rgba(20,10,5,.28) 45%,rgba(20,10,5,0) 72%);opacity:0;transition:opacity .45s}
+.shd.on{opacity:1}
+.ch.talk{filter:drop-shadow(0 0 18px rgba(255,214,140,.35));animation:bob .5s ease-out}
+@keyframes bob{0%{transform:translateX(-50%) translateY(0)}35%{transform:translateX(-50%) translateY(-12px)}100%{transform:translateX(-50%) translateY(0)}}
+
+/* dialogue */
+#dlg{left:40px;right:40px;bottom:16px;height:178px;background:#fdf6e8;border:5px solid #c8a165;border-radius:26px;box-shadow:0 10px 40px rgba(0,0,0,.5);padding:22px 220px 18px 34px;cursor:pointer;transition:opacity .3s,transform .3s}
+#dlg.hide{opacity:0;transform:translateY(30px);pointer-events:none}
+#dlgName{position:absolute;top:-26px;left:34px;padding:6px 22px;border-radius:16px;color:#fff;font-weight:900;font-size:26px;box-shadow:0 4px 10px rgba(0,0,0,.3)}
+#dlgName:empty{display:none}
+#dlgText{font-size:31px;line-height:1.32;color:#2b1d12;font-weight:700}
+#dlgText.narr{font-style:italic;color:#5b4632}
+#dlgBtn{position:absolute;right:26px;bottom:24px;background:#3d7a3a;color:#fff;border:none;border-radius:18px;font:900 28px "Nunito",sans-serif;padding:14px 26px;cursor:pointer;box-shadow:0 5px 0 #24521f}
+#dlgBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #24521f}
+
+/* hud */
+#hud{left:0;top:0;width:1600px;height:110px;pointer-events:none}
+#hud>*{pointer-events:auto}
+.tbtn{position:absolute;top:18px;width:58px;height:58px;border-radius:50%;border:3px solid rgba(255,255,255,.35);background:rgba(20,16,40,.7);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tbtn svg{width:30px;height:30px}
+.tbtn:hover{background:rgba(60,50,110,.9)}
+#prints{position:absolute;left:310px;top:18px;height:58px;padding:0 22px 0 14px;border-radius:29px;background:rgba(253,246,232,.95);border:4px solid #c8a165;display:flex;align-items:center;gap:10px;font-weight:900;font-size:26px;color:#4a3320;opacity:0;transition:opacity .4s}
+#prints.on{opacity:1}
+#prints svg{width:38px;height:38px}
+#loc{position:absolute;left:20px;top:92px;padding:6px 20px;border-radius:20px;background:rgba(20,16,40,.72);color:#f4e2bf;font-weight:800;font-size:26px;white-space:nowrap}
+#loc:empty{display:none}
+#ticket{position:absolute;right:16px;top:12px;width:352px;padding:8px 14px 10px;border-radius:16px;background:#f3e6c6;border:3px dashed #9c7a45;box-shadow:0 6px 18px rgba(0,0,0,.4);opacity:0;transition:opacity .4s}
+#ticket.on{opacity:1}
+#ticket .tt{font-size:17px;font-weight:900;color:#7b2335;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+#ticket .slots{display:flex;gap:6px}
+.slot{width:46px;height:46px;border-radius:50%;border:3px dashed #b99a66;display:flex;align-items:center;justify-content:center;position:relative}
+.slot svg{width:32px;height:32px;opacity:.18}
+.slot.done{border:3px solid #a82a2a;background:rgba(168,42,42,.08)}
+.slot.done svg{opacity:1}
+.slot.done.anim{animation:stampIn .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes stampIn{0%{transform:scale(3) rotate(-30deg);opacity:0}60%{opacity:1}100%{transform:scale(1) rotate(-8deg)}}
+
+/* card */
+#card{left:400px;top:34px;width:800px;max-height:832px;background:#fdf6e8;border:6px solid #c8a165;border-radius:30px;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:26px 34px;display:flex;flex-direction:column;transition:opacity .3s,transform .3s,box-shadow .4s}
+#card.hide{opacity:0;transform:scale(.94);pointer-events:none}
+#card.win{box-shadow:0 0 0 8px #4caf50,0 0 70px 20px rgba(110,220,110,.75)}
+#card .ch-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
+#card h2{font-size:34px;font-weight:900;color:#5a2a14;line-height:1.15}
+.subj{font-size:18px;font-weight:800;color:#fff;background:#8a5a2b;padding:5px 14px;border-radius:12px;white-space:nowrap}
+#cardBody{position:relative;display:flex;flex-direction:column;min-height:0}
+.q{font-size:28px;font-weight:700;color:#2b1d12;line-height:1.3;margin-bottom:14px}
+#hint{min-height:64px;margin-top:10px;padding:12px 18px;border-radius:16px;background:#fff1d6;border:3px solid #e8b04a;font-size:24px;font-weight:700;color:#6b4206;line-height:1.25;opacity:0;transition:opacity .25s}
+#hint.on{opacity:1}
+#hint.good{background:#e6f6df;border-color:#5cae4f;color:#2d6a22}
+.opts{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin-top:10px}
+.btn{background:#fff;border:4px solid #c8a165;border-radius:20px;font:900 34px "Nunito",sans-serif;color:#3a2614;padding:14px 34px;cursor:pointer;box-shadow:0 5px 0 #a8834b;transition:background .2s,border-color .2s}
+.btn:hover{background:#fff8e6}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #a8834b}
+.btn.ok{background:#dff3d6;border-color:#4caf50;box-shadow:0 5px 0 #2e7d32}
+.btn.bad{background:#fde0dc;border-color:#e0574a;box-shadow:0 5px 0 #b23a2f;animation:shake .4s}
+.btn.primary{background:#3d7a3a;color:#fff;border-color:#2c5c29;box-shadow:0 5px 0 #24521f}
+.btn.ghost{background:#efe4cc}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(7px)}}
+.clocks{display:flex;justify-content:center;gap:60px;margin:18px 0 26px}
+.clk{text-align:center;font-size:24px;font-weight:800;color:#6b4a2a}
+.clk b{display:block;margin-top:8px;font:900 64px "Nunito",monospace;color:#7ef0a0;background:#1d2b22;border:5px solid #3b5244;border-radius:18px;padding:6px 26px;letter-spacing:2px;text-shadow:0 0 14px rgba(126,240,160,.6)}
+.numrow{display:flex;align-items:center;gap:16px;margin:12px 0;font-size:27px;font-weight:700;color:#2b1d12}
+.numrow span{flex:0 0 330px}
+.numrow input{width:180px;font:900 34px "Nunito",sans-serif;padding:8px 14px;border:4px solid #c8a165;border-radius:14px;text-align:center;color:#2b1d12;background:#fff}
+.numrow input.ok{border-color:#4caf50;background:#e8f7e2}
+.numrow input.bad{border-color:#e0574a;background:#fde6e2;animation:shake .4s}
+.numrow input:disabled{opacity:.5}
+.numrow .btn{font-size:24px;padding:8px 20px}
+
+/* pot puzzle */
+#puz{position:relative;width:732px;height:520px;margin:0 auto}
+#puzTarget{position:absolute;left:206px;top:84px;width:320px;height:352px}
+.shard{position:absolute;left:206px;top:84px;width:320px;height:352px;pointer-events:none;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35));transition:filter .2s}
+.shard.drag{filter:drop-shadow(0 16px 14px rgba(0,0,0,.45));z-index:5}
+.shard.back{transition:transform .45s ease}
+.shard .in{width:100%;height:100%;pointer-events:auto;cursor:grab;touch-action:none}
+.shard.placed{filter:none;z-index:0}
+.shard.placed .in{pointer-events:none;cursor:default}
+#puz.full #puzTarget{animation:glowPot 1.2s ease}
+@keyframes glowPot{0%{filter:none}50%{filter:drop-shadow(0 0 30px #ffd76a)}100%{filter:none}}
+
+/* ornament */
+.orow{display:flex;gap:10px;justify-content:center;padding:18px;background:#7a3b22;border-radius:18px;border:4px solid #3d1c10;margin:6px auto 18px}
+.tile{width:104px;height:104px;border-radius:14px;background:#d58a55;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 3px rgba(0,0,0,.15)}
+.tile.q{background:#fff3df;border:4px dashed #b8743e;font-size:60px;font-weight:900;color:#b8743e}
+.tile.q.ok{background:#dff3d6;border:4px solid #4caf50}
+.tile svg{width:86px;height:86px}
+.obtn{width:126px;height:126px;padding:0;display:flex;align-items:center;justify-content:center;background:#d58a55}
+.obtn svg{width:100px;height:100px}
+.obtn:hover{background:#e39a66}
+.prog{font-size:22px;font-weight:800;color:#8a5a2b;text-align:center}
+
+/* egypt */
+.egkey{display:flex;justify-content:center;gap:16px;margin-bottom:10px;flex-wrap:wrap}
+.egkey span{display:flex;align-items:center;gap:4px;background:#f1dfb8;border-radius:12px;padding:2px 12px 2px 4px;font-size:22px;font-weight:900;color:#5a3a14}
+.egwall{min-height:150px;display:flex;align-items:flex-end;justify-content:center;gap:18px;padding:16px;margin:6px auto 12px;background:#e2c48a;border:5px solid #9c7a45;border-radius:14px;box-shadow:inset 0 0 0 3px rgba(255,255,255,.25)}
+.egwall.ok{border-color:#4caf50;background:#e8f2cf}
+.egg{display:flex;flex-wrap:wrap;max-width:170px;justify-content:center;align-items:flex-end}
+.egph{font-size:22px;font-weight:700;color:#7a5a2e;align-self:center}
+.egbtns{display:flex;justify-content:center;gap:14px;margin-bottom:6px}
+.egb{display:flex;flex-direction:column;align-items:center;gap:6px}
+.eadd{display:flex;flex-direction:column;align-items:center;padding:6px 14px;font-size:20px;background:#f1dfb8}
+.edel{font-size:26px;padding:0 22px;line-height:1.3}
+/* mesopotamia */
+.cutab{min-height:170px;display:flex;align-items:center;justify-content:center;gap:26px;padding:16px 30px;margin:6px auto 12px;width:max-content;min-width:360px;background:#c9a77a;border:6px solid #7a5a35;border-radius:30px;box-shadow:inset 0 0 0 4px rgba(255,255,255,.18),inset 0 -10px 20px rgba(90,58,30,.25)}
+.cutab.ok{border-color:#4caf50}
+.cugrp{display:flex;gap:4px;align-items:center}
+.cucol{display:flex;flex-direction:column}
+.cuones{display:grid;grid-template-columns:repeat(3,auto);gap:0 2px}
+.lawline{min-height:76px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding:12px;margin:8px 0 16px;background:#c9a77a;border:5px solid #7a5a35;border-radius:18px;font-size:30px;font-weight:800;color:#3a2614}
+.lawline.ok{border-color:#4caf50;background:#e3d3a8}
+.chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.chip{font-size:28px;padding:10px 22px}
+/* china */
+.algo{display:flex;flex-direction:column;gap:8px;margin:6px 0 14px}
+.aslot{display:flex;align-items:center;gap:14px;min-height:52px;padding:6px 14px;border-radius:14px;border:3px dashed #b8743e;background:#fff8ea;font-size:23px;font-weight:700;color:#9a8466;transition:background .2s,border-color .2s}
+.aslot b{width:36px;height:36px;border-radius:50%;background:#8a3a22;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto}
+.aslot.full{border-style:solid;color:#3a2614;background:#f6e7c8;cursor:pointer}
+.aslot.go{background:#fff1b8;border-color:#e8a530}
+.aslot.done{background:#e3f2d6;border-color:#4caf50}
+.aslot.err{background:#fde0dc;border-color:#e0574a;animation:shake .4s}
+/* greece */
+.chip.pick{background:#fff1b8;border-color:#e8a530;box-shadow:0 5px 0 #b8862a}
+.eyes svg{width:100%;display:block;filter:drop-shadow(0 0 6px #dcff8c);animation:blink 3.4s infinite;transform-origin:50% 50%}
+@keyframes blink{0%,86%,100%{transform:scaleY(1)}90%{transform:scaleY(.08)}94%{transform:scaleY(1)}}
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:10px 0 18px;height:230px}
+.pslot{width:140px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;position:relative}
+.pslot span{font-size:26px;font-weight:900;color:#3a2614;min-height:36px}
+.pslot b{width:100%;display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;background:#b9b2a2;border-radius:10px 10px 0 0;border:3px solid #8a7e68}
+.pslot.p1 b{height:130px;background:#d9b44a}.pslot.p2 b{height:100px;background:#b8bcc6}.pslot.p3 b{height:76px;background:#c98a52}.pslot.p4 b{height:54px}
+.pslot.full{cursor:pointer}
+.wreath{position:absolute;top:-62px;width:64px;height:64px}.wreath svg{width:64px;height:64px}
+/* rome + finale */
+.keyglow{position:absolute;left:722px;top:0;width:170px;height:140px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,246,190,1) 0%,rgba(255,220,110,.85) 35%,rgba(255,220,110,0) 70%);mix-blend-mode:screen;animation:kg 1.3s ease-in-out 4;pointer-events:none}
+@keyframes kg{0%,100%{opacity:.45;transform:scale(.9)}50%{opacity:1;transform:scale(1.12)}}
+.match{display:flex;gap:26px;justify-content:center;margin-top:6px}
+.mcol{display:flex;flex-direction:column;gap:10px;width:340px}
+.mh{text-align:center;font-size:22px;font-weight:900;color:#8a5a2b;text-transform:uppercase;letter-spacing:1px}
+.mi{font-size:21px;padding:10px 14px;line-height:1.2;position:relative}
+.mi.pick{background:#fff1b8;border-color:#e8a530;box-shadow:0 5px 0 #b8862a}
+.mi.ok::after{content:attr(data-n);position:absolute;right:-12px;top:-12px;width:28px;height:28px;border-radius:50%;background:#4caf50;color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center}
+.dipl svg{width:720px;height:480px;display:block;margin:0 auto;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.glint{animation:gl 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes gl{0%,100%{opacity:.35}50%{opacity:1}}
+.endscr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;background:radial-gradient(ellipse at 50% 40%,#3a2d6b 0%,#0d0b18 75%)}
+.endscr p{font-size:56px;font-weight:900;color:#ffe3a3;font-style:italic;text-shadow:0 0 30px rgba(255,200,120,.4)}
+/* labels */
+.labels{display:flex;flex-direction:column;gap:16px;align-items:center;margin-top:8px}
+.plank{width:600px;font-size:28px;padding:16px 20px;background:#f1d9a7;border-color:#8a5a2b;box-shadow:0 5px 0 #6b431f;color:#3a2614}
+
+/* plan */
+#plan{position:relative;width:732px;height:600px;margin:0 auto}
+#plan svg{width:732px;height:600px}
+.room{cursor:pointer}
+.room.locked{cursor:default}
+.room.avail rect.box,.room.avail circle.box{animation:pulse 1.3s infinite}
+@keyframes pulse{0%,100%{stroke:#e8a530;stroke-width:6}50%{stroke:#ffe08a;stroke-width:10}}
+
+/* props */
+.paw{position:absolute;width:54px;height:54px;cursor:pointer;opacity:.55;transition:opacity .3s,transform .3s}
+.paw:hover{opacity:.8}
+.paw.clue{opacity:1}.paw.clue img{width:100%;display:block;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 28%);mask-image:linear-gradient(to right,transparent 0,#000 28%)}
+.paw.pulse{animation:pawPulse 1s infinite;opacity:.95}
+@keyframes pawPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 #ffd76a)}50%{transform:scale(1.35);filter:drop-shadow(0 0 18px #ffd76a)}}
+.paw.found{animation:pawFound .9s forwards;pointer-events:none}
+@keyframes pawFound{0%{transform:scale(1);opacity:1;filter:drop-shadow(0 0 20px #ffe58a)}60%{transform:scale(1.8);opacity:1;filter:drop-shadow(0 0 30px #ffe58a)}100%{transform:scale(.4) translate(-1600px,-1400px);opacity:0}}
+#toast{position:absolute;left:50%;top:96px;transform:translate(-50%,-20px);background:#fdf6e8;border:4px solid #c8a165;border-radius:20px;padding:10px 26px;font-size:26px;font-weight:900;color:#5a2a14;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#fade{position:absolute;inset:0;background:#0d0b18;opacity:0;pointer-events:none;transition:opacity .45s}
+#fade.on{opacity:1}
+#startScr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;background:radial-gradient(ellipse at 50% 40%,#3a2d6b 0%,#1a1533 70%)}
+#startScr h1{font-size:84px;font-weight:900;color:#ffe3a3;text-shadow:0 6px 0 #6b3a14,0 0 40px rgba(255,200,120,.4);text-align:center;line-height:1.05}
+#startScr p{font-size:30px;color:#e9dcff;font-weight:700}
+#startScr .btn{font-size:40px;padding:18px 60px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <div id="props"></div>
+  <div id="cast"></div>
+  <div id="hud">
+    <button class="tbtn" id="skipBtn" style="left:20px" title="Далі (для вчителя): пропустити репліку або завдання">
+      <svg viewBox="0 0 24 24"><path d="M4 5l9 7-9 7z M13 5l7 7-7 7z" fill="#f4e2bf"/></svg></button>
+    <button class="tbtn" id="fsBtn" style="left:92px" title="Повноекранний режим">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#f4e2bf" stroke-width="2.6" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button class="tbtn" id="sndBtn" style="left:164px" title="Звуки (M)"></button>
+    <button class="tbtn" id="musBtn" style="left:236px" title="Музика (N)"></button>
+    <div id="prints"><span id="pawIco"></span><span id="printsTxt">Сліди: 0 з 6</span></div>
+    <div id="loc"></div>
+    <div id="ticket"><div class="tt">Квиток відвідувача</div><div class="slots" id="slots"></div></div>
+  </div>
+  <div id="card" class="hide"><div class="ch-head"><h2 id="cardTitle"></h2><span class="subj" id="cardSubj"></span></div><div id="cardBody"></div><div id="hint"></div></div>
+  <div id="dlg" class="hide"><div id="dlgName"></div><div id="dlgText"></div><button id="dlgBtn">Далі ▶</button></div>
+  <div id="toast"></div>
+  <div id="fade"></div>
+  <div id="startScr">
+    <h1>Мурко<br>і Ніч у музеї</h1>
+    <p>Урок-квест про давні цивілізації · 4 клас</p>
+    <button class="btn primary" id="startBtn">Почати ▶</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ БАЗА ============ */
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const fmt=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+let SCALE=1;
+function fit(){
+  const s=Math.min(innerWidth/1600,innerHeight/900);SCALE=s;
+  $("stage").style.transform=`translate(${(innerWidth-1600*s)/2}px,${(innerHeight-900*s)/2}px) scale(${s})`;
+}
+addEventListener("resize",fit);fit();
+/* ================== ЗВУКИ (синтез Web Audio, без файлів) — як у квесті з драконом ================== */
+const SND={ctx:null,master:null,on:true,last:{}};
+try{SND.on=localStorage.getItem("murko_museum_sound")!=="off"}catch(e){}
+function audioInit(){
+  if(SND.ctx){if(SND.ctx.state==="suspended")SND.ctx.resume();return}
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  SND.ctx=new AC();SND.master=SND.ctx.createGain();SND.master.gain.value=.8;
+  const comp=SND.ctx.createDynamicsCompressor();SND.master.connect(comp);comp.connect(SND.ctx.destination);
+}
+function tone(f,t,dur,{type="sine",g=.3,a=.005,r=null,f2=null}={}){
+  const c=SND.ctx,o=c.createOscillator(),v=c.createGain(),end=t+(r??dur);
+  o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(g,t+a);v.gain.exponentialRampToValueAtTime(.0001,end);
+  o.connect(v);v.connect(SND.master);o.start(t);o.stop(end+.05);
+}
+let NOISE=null;
+function noise(t,dur,{g=.2,f=1200,q=1,type="bandpass",f2=null,a=.01}={}){
+  const c=SND.ctx;
+  if(!NOISE){const len=c.sampleRate*3;NOISE=c.createBuffer(1,len,c.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1}
+  const s=c.createBufferSource(),fl=c.createBiquadFilter(),v=c.createGain();
+  s.buffer=NOISE;fl.type=type;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+dur);fl.Q.value=q;
+  v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(g,t+a);v.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(fl);fl.connect(v);v.connect(SND.master);s.start(t,Math.random()*2);s.stop(t+dur+.05);
+}
+function sfx(name){
+  if(!SND.on)return;audioInit();if(!SND.ctx)return;
+  const now=performance.now();if(SND.last[name]&&now-SND.last[name]<70)return;SND.last[name]=now;
+  const t=SND.ctx.currentTime+.01;
+  try{switch(name){
+    case "click":tone(1300,t,.05,{type:"triangle",g:.06});break;
+    case "ok":tone(880,t,.12,{g:.18});tone(1318.5,t+.08,.35,{g:.16});tone(1760,t+.08,.3,{g:.05});break;
+    case "bad":tone(220,t,.18,{type:"triangle",g:.16,f2:150});tone(165,t+.09,.22,{type:"triangle",g:.12,f2:120});break;
+    case "pop":tone(660,t,.08,{type:"triangle",g:.1,f2:990});break;
+    case "magic":[784,988,1175,1568,1976].forEach((f,i)=>tone(f,t+i*.07,.6,{g:.09}));noise(t,.9,{g:.04,f:6000,q:.7,type:"highpass"});break;
+    case "hoot":tone(420,t,.22,{g:.22,f2:380,a:.04});tone(400,t+.32,.45,{g:.22,f2:330,a:.05});break;
+    case "chime":[1568,2093,2637].forEach((f,i)=>tone(f,t+i*.09,.9,{g:.07}));break;
+    case "creak":tone(140,t,.5,{type:"sawtooth",g:.07,f2:210,a:.08});tone(170,t+.45,.4,{type:"sawtooth",g:.06,f2:120,a:.06});noise(t,.9,{g:.06,f:500,q:4});break;
+    case "clink":tone(2200,t,.25,{type:"triangle",g:.08});tone(3300,t+.02,.18,{g:.05});break;
+    case "clay":tone(160,t,.12,{type:"triangle",g:.22,f2:110});noise(t,.08,{g:.1,f:900,q:1.5});break;
+    case "step":noise(t,.07,{g:.07,f:700,q:1.5});break;
+    case "steps":[0,.22,.44].forEach(d=>noise(t+d,.07,{g:.06,f:650,q:1.5}));break;
+    case "paper":noise(t,.28,{g:.12,f:3500,f2:1800,q:.8,a:.03});noise(t+.12,.2,{g:.08,f:2600,q:.9});break;
+    case "rustle":for(let i=0;i<4;i++)noise(t+i*.09,.12,{g:.08,f:2200+Math.random()*1500,q:1});break;
+    case "stamp":noise(t,.12,{g:.35,f:300,q:.8,type:"lowpass"});tone(120,t,.18,{type:"triangle",g:.25,f2:70});[523,784].forEach((f,i)=>tone(f,t+.18+i*.08,.4,{type:"triangle",g:.08}));break;
+    case "bell":[0,.7,1.4].forEach(d=>{tone(659,t+d,1.4,{g:.12});tone(1318,t+d,.9,{g:.04})});break;
+    case "reward":[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.1,.5,{type:"triangle",g:.11}));tone(2093,t+.42,.8,{g:.05});break;
+    case "fanfare":[[523,0],[659,.14],[784,.28],[1047,.46]].forEach(([f,d])=>{tone(f,t+d,.5,{type:"sawtooth",g:.05});tone(f,t+d,.5,{type:"triangle",g:.1})});
+      [523,659,784,1047].forEach(f=>tone(f,t+.75,1.4,{type:"triangle",g:.08}));break;
+  }}catch(e){}
+}
+const SND_ON=`<svg viewBox="0 0 40 40"><path d="M6 15h7l9-7v24l-9-7H6z" fill="#e8a628" stroke="#f4e2bf" stroke-width="2.5" stroke-linejoin="round"/><path d="M27 14q4 6 0 12M31 10q7 10 0 20" fill="none" stroke="#f4e2bf" stroke-width="3" stroke-linecap="round"/></svg>`;
+const SND_OFF=`<svg viewBox="0 0 40 40"><path d="M6 15h7l9-7v24l-9-7H6z" fill="#7a7060" stroke="#f4e2bf" stroke-width="2.5" stroke-linejoin="round"/><path d="M27 15l9 10M36 15l-9 10" stroke="#ff7a5c" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+const MUS_ON=`<svg viewBox="0 0 40 40"><path d="M15 29V9l17-4v20" fill="none" stroke="#f4e2bf" stroke-width="3" stroke-linejoin="round"/><ellipse cx="11" cy="29" rx="5" ry="4" fill="#e8a628" stroke="#f4e2bf" stroke-width="2"/><ellipse cx="28" cy="25" rx="5" ry="4" fill="#e8a628" stroke="#f4e2bf" stroke-width="2"/></svg>`;
+const MUS_OFF=`<svg viewBox="0 0 40 40"><path d="M15 29V9l17-4v20" fill="none" stroke="#9a9080" stroke-width="3" stroke-linejoin="round"/><ellipse cx="11" cy="29" rx="5" ry="4" fill="#7a7060"/><ellipse cx="28" cy="25" rx="5" ry="4" fill="#7a7060"/><path d="M6 6l28 28" stroke="#ff7a5c" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+function setSound(on){SND.on=on;try{localStorage.setItem("murko_museum_sound",on?"on":"off")}catch(e){}$("sndBtn").innerHTML=on?SND_ON:SND_OFF;if(on){audioInit();sfx("pop")}}
+addEventListener("pointerdown",()=>audioInit(),{capture:true});
+document.addEventListener("click",e=>{if(e.target.closest(".btn,#dlgBtn,.tbtn"))sfx("click")},true);
+
+/* ================== МУЗИКА (файли в папці music/) ==================
+   m1 — вступ, хол і план музею; m2 — Трипілля; m3 — Єгипет; m4 — Месопотамія; m5 — Китай;
+   m6 — Греція; m7 — Рим; m8 — центральна зала й комора; m9 — ранок і диплом; m10 — горище (якщо немає — грає m1) */
+const MUSIC_DIR="music/",MUS_FALLBACK={m10:"m1"};
+const MUS={on:true,track:null,level:0,voices:[],ok:true,ctxTrack:null,mode:"scene"};
+try{MUS.on=localStorage.getItem("murko_museum_music")!=="off"}catch(e){}
+const VOL={scene:.3,task:.15,bright:.4};
+/* гучність треків уже вирівняна в самих файлах (−16 LUFS).
+   Якщо заміните трек і він звучатиме гучніше чи тихіше — поставте тут множник, напр. {m3:.7} (більше — гучніше) */
+const TRACK_GAIN={};
+const tg=t=>TRACK_GAIN[t]??1;
+const useGraph=location.protocol!=="file:";
+function mkVoice(track){
+  const el=new Audio();el.src=MUSIC_DIR+track+".mp3";el.preload="auto";
+  const v={el,track,vol:0,target:0,rate:.5,dying:false,spawned:false,gain:null};
+  if(useGraph){try{audioInit();const src=SND.ctx.createMediaElementSource(el);v.gain=SND.ctx.createGain();v.gain.gain.value=0;src.connect(v.gain);v.gain.connect(SND.ctx.destination)}catch(e){v.gain=null}}
+  if(!v.gain)el.volume=0;
+  el.addEventListener("error",()=>{if(MUS_FALLBACK[track]&&MUS.track===track){MUS.track=null;musicSet(MUS_FALLBACK[track],MUS.level)}else MUS.ok=false});
+  const p=el.play();if(p&&p.catch)p.catch(()=>{});
+  MUS.voices.push(v);return v;
+}
+function applyVol(v){if(v.gain)v.gain.gain.value=v.vol;else v.el.volume=Math.max(0,Math.min(1,v.vol))}
+function musicSet(track,level){
+  if(!MUS.on)track=null;
+  if(track!==MUS.track){MUS.voices.forEach(v=>{v.dying=true;v.target=0;v.rate=.35});MUS.track=track;if(track){const v=mkVoice(track);v.target=level*tg(track);v.rate=.25}}
+  MUS.level=level;MUS.voices.forEach(v=>{if(!v.dying&&v.track===MUS.track){v.target=level*tg(v.track);v.rate=.3}});
+}
+setInterval(()=>{
+  const dt=.1;
+  MUS.voices.forEach(v=>{
+    if(v.el.paused&&!v.dying)return;
+    if(v.vol<v.target)v.vol=Math.min(v.target,v.vol+v.rate*dt);else if(v.vol>v.target)v.vol=Math.max(v.target,v.vol-v.rate*dt);
+    applyVol(v);
+    const d=v.el.duration; /* безшовне повторення: за 4 с до кінця запускаємо трек спочатку */
+    if(!v.dying&&!v.spawned&&d&&isFinite(d)&&v.el.currentTime>d-4){v.spawned=true;v.dying=true;v.target=0;v.rate=Math.max(.05,v.vol/3.5);const n=mkVoice(v.track);n.target=MUS.level*tg(v.track);n.rate=Math.max(.05,n.target/3)}
+  });
+  MUS.voices=MUS.voices.filter(v=>{if(v.dying&&v.vol<=0){v.el.pause();v.el.removeAttribute("src");try{v.el.load()}catch(e){}return false}return true});
+},100);
+function musicUpdate(){musicSet(MUS.ctxTrack,VOL[MUS.mode]??.26)}
+function music(track,mode){if(track!==undefined)MUS.ctxTrack=track;if(mode)MUS.mode=mode;musicUpdate()}
+function setMusic(on){MUS.on=on;try{localStorage.setItem("murko_museum_music",on?"on":"off")}catch(e){}$("musBtn").innerHTML=on?MUS_ON:MUS_OFF;if(on)audioInit();musicUpdate();
+  if(on&&!MUS.ok)toast("Музику не знайдено: покладіть папку music поруч з index.html")}
+addEventListener("pointerdown",()=>{MUS.voices.forEach(v=>{if(v.el.paused&&!v.dying){const p=v.el.play();if(p&&p.catch)p.catch(()=>{})}})});
+addEventListener("keydown",e=>{if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  if(e.code==="KeyN"){setMusic(!MUS.on);toast(MUS.on?"Музику увімкнено":"Музику вимкнено")}
+  if(e.code==="KeyM"){setSound(!SND.on);toast(SND.on?"Звуки увімкнено":"Звуки вимкнено")}});
+
+/* браузер іноді прокручує сторінку, щоб показати кнопку чи поле; сцена завжди має стояти на місці */
+document.addEventListener("scroll",e=>{const t=e.target===document?document.scrollingElement:e.target;if(t&&(t.scrollLeft||t.scrollTop)){t.scrollLeft=0;t.scrollTop=0}},true);
+
+const IMG="img/sprites/web/";
+const CAST={
+  murko:   {name:"Мурко",     color:"#d9701c",cx:205, h:360,n:[1,2,3,4,5],sx:10,sw:270},
+  snizhok: {name:"Сніжок",    color:"#2c78c9",cx:510, h:360,n:[1,2,3,4,5],sx:-15,sw:230},
+  pugach:  {name:"Пан Пугач", color:"#7b2335",cx:1360,h:520,n:[1,2,3,4,5,6,7],sx:25,sw:300},
+  shustryk:{name:"Шустрик",   color:"#8a6a3a",cx:800, h:300,n:[1,3,4,5,6,7],sx:40,sw:300}
+};
+for(const k in CAST){
+  const im=document.createElement("img");im.className="ch";im.id="ch-"+k;im.alt=CAST[k].name;
+  im.style.left=CAST[k].cx+"px";im.style.height=CAST[k].h+"px";im.src=IMG+k+"-"+CAST[k].n[0]+".webp";
+  const sh=el("div","shd");sh.style.left=(CAST[k].cx+CAST[k].sx)+"px";sh.style.width=CAST[k].sw+"px";
+  $("cast").append(sh,im);CAST[k].el=im;CAST[k].sh=sh;
+  CAST[k].n.forEach(n=>{const p=new Image();p.src=IMG+k+"-"+n+".webp"});
+}
+const SUB={}; /* заміни спрайтів, якщо якийсь тимчасово не готовий: {pugach:{2:1}} */
+function pose(k,n){n=(SUB[k]&&SUB[k][n])||n;const e=CAST[k].el,src=IMG+k+"-"+n+".webp";if(!e.src.endsWith(src))e.src=src}
+function show(k,n){if(n)pose(k,n);CAST[k].el.classList.add("on");CAST[k].sh.classList.add("on")}
+function hide(k){CAST[k].el.classList.remove("on","talk");CAST[k].sh.classList.remove("on")}
+function setCx(k,cx){CAST[k].el.style.left=cx+"px";CAST[k].sh.style.left=(cx+CAST[k].sx)+"px"}
+/* castOnly також повертає героїв на звичні місця; окрема зала може потім посунути когось через setCx */
+function castOnly(list){for(const k in CAST){setCx(k,CAST[k].cx);list.includes(k)?show(k):hide(k)}}
+
+/* ожидание «Далі» / завдання */
+let waiter=null,taskEnd=null;
+function advance(){if(waiter){const w=waiter;waiter=null;w()}}
+let dlgLock=false;
+$("dlg").addEventListener("click",()=>{if(!dlgLock)advance()});
+addEventListener("keydown",e=>{if((e.key===" "||e.key==="Enter"||e.key==="ArrowRight")&&waiter&&!dlgLock&&document.activeElement.tagName!=="INPUT"){e.preventDefault();advance()}});
+$("skipBtn").onclick=e=>{e.stopPropagation();if(taskEnd)taskEnd("skip");else advance()};
+$("fsBtn").onclick=e=>{e.stopPropagation();const d=document;try{if(!d.fullscreenElement)d.documentElement.requestFullscreen?.()?.catch?.(()=>{});else d.exitFullscreen?.()?.catch?.(()=>{})}catch(_){}};
+
+let hooted=false;
+function say(who,n,text,opt={}){
+  if(who==="pugach"&&!hooted){hooted=true;setTimeout(()=>sfx("hoot"),150)}
+  for(const k in CAST)CAST[k].el.classList.remove("talk");
+  const nm=$("dlgName"),tx=$("dlgText");
+  if(who){show(who,n);void CAST[who].el.offsetWidth;CAST[who].el.classList.add("talk");nm.textContent=CAST[who].name;nm.style.background=CAST[who].color;tx.className=""}
+  else{nm.textContent="";tx.className="narr"}
+  tx.textContent=text;
+  $("dlgBtn").textContent=opt.btn||"Далі ▶";$("dlgBtn").style.display=opt.lock?"none":"";dlgLock=!!opt.lock;
+  $("dlg").classList.remove("hide");
+  return new Promise(r=>{waiter=()=>{dlgLock=false;r()};if(opt.until)opt.until(()=>advance())});
+}
+function dlgHide(){$("dlg").classList.add("hide")}
+function setLoc(t){$("loc").textContent=t||""}
+async function fadeTo(fn){$("fade").classList.add("on");sfx("steps");await sleep(480);fn();await sleep(80);$("fade").classList.remove("on");await sleep(300)}
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2200)}
+
+/* картка завдання */
+function task(title,subj,build){
+  dlgHide();
+  for(const k in CAST)CAST[k].el.classList.remove("talk");
+  $("cardTitle").textContent=title;$("cardSubj").textContent=subj;
+  const body=$("cardBody");body.innerHTML="";hint("");
+  $("card").classList.remove("hide","win");sfx(title==="План музею"?"paper":"pop");const prevMode=MUS.mode;if(prevMode!=="bright")music(undefined,"task");
+  return new Promise(res=>{
+    let ended=false;
+    taskEnd=v=>{if(ended)return;ended=true;taskEnd=null;$("card").classList.add("hide");if(prevMode!=="bright")music(undefined,prevMode);setTimeout(()=>{$("card").classList.remove("win")},350);res(v)};
+    const win=async(msg)=>{if(ended)return;hint(msg||"Правильно!","good");$("card").classList.add("win");await sleep(1300);taskEnd&&taskEnd("ok")};
+    build(body,win);
+  });
+}
+function hint(t,cls){const h=$("hint");h.textContent=t;h.className=t?("on "+(cls||"")):"";if(t&&cls==="good")sfx("ok")}
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+
+/* ============ СТАН ============ */
+const HALLS=[
+  {name:"Трипілля",icon:"spiral"},{name:"Єгипет",icon:"pyramid"},{name:"Месопотамія",icon:"wheel"},
+  {name:"Китай",icon:"scroll"},{name:"Греція",icon:"wreath"},{name:"Рим",icon:"arch"}];
+const ST={stamps:[0,0,0,0,0,0],prints:[0,0,0,0,0,0]};
+
+/* ============ ІКОНКИ ============ */
+function spiralPath(cx,cy,r,turns,start=0){
+  let d="";const N=Math.round(turns*36);
+  for(let i=0;i<=N;i++){const t=i/N,a=start+t*turns*2*Math.PI,rr=r*(0.08+0.92*t);
+    d+=(i?"L":"M")+(cx+rr*Math.cos(a)).toFixed(1)+","+(cy+rr*Math.sin(a)).toFixed(1)}
+  return d;
+}
+const ICON={
+  spiral:c=>`<path d="${spiralPath(50,50,40,2.6)}" fill="none" stroke="${c}" stroke-width="9" stroke-linecap="round"/>`,
+  pyramid:c=>`<path d="M50 12 L90 84 H10 Z" fill="none" stroke="${c}" stroke-width="8" stroke-linejoin="round"/><path d="M30 48 H70 M22 66 H78" stroke="${c}" stroke-width="6"/>`,
+  wheel:c=>`<circle cx="50" cy="50" r="38" fill="none" stroke="${c}" stroke-width="8"/><circle cx="50" cy="50" r="8" fill="${c}"/><path d="M50 12V88M12 50H88M23 23L77 77M77 23L23 77" stroke="${c}" stroke-width="5"/>`,
+  scroll:c=>`<rect x="22" y="18" width="56" height="64" fill="none" stroke="${c}" stroke-width="7"/><path d="M14 18H86M14 82H86" stroke="${c}" stroke-width="10" stroke-linecap="round"/><path d="M34 38H66M34 52H66M34 66H56" stroke="${c}" stroke-width="5"/>`,
+  wreath:c=>`<path d="M50 88 C20 80 10 50 22 20 M50 88 C80 80 90 50 78 20" fill="none" stroke="${c}" stroke-width="6"/>${[0,1,2,3].map(i=>`<ellipse cx="${20+i*2}" cy="${70-i*15}" rx="5" ry="10" transform="rotate(${-40+i*12} ${20+i*2} ${70-i*15})" fill="${c}"/><ellipse cx="${80-i*2}" cy="${70-i*15}" rx="5" ry="10" transform="rotate(${40-i*12} ${80-i*2} ${70-i*15})" fill="${c}"/>`).join("")}`,
+  arch:c=>`<path d="M14 88 V48 A36 36 0 0 1 86 48 V88 H68 V50 A18 18 0 0 0 32 50 V88 Z" fill="none" stroke="${c}" stroke-width="7" stroke-linejoin="round"/><rect x="44" y="8" width="12" height="16" fill="${c}"/>`
+};
+const icon=(k,c="#a82a2a")=>`<svg viewBox="0 0 100 100">${ICON[k](c)}</svg>`;
+const PAW=(c="#7a5236")=>`<svg viewBox="0 0 60 60"><ellipse cx="30" cy="38" rx="13" ry="11" fill="${c}"/><ellipse cx="14" cy="24" rx="5" ry="7" fill="${c}"/><ellipse cx="24" cy="15" rx="5" ry="7" fill="${c}"/><ellipse cx="36" cy="15" rx="5" ry="7" fill="${c}"/><ellipse cx="46" cy="24" rx="5" ry="7" fill="${c}"/></svg>`;
+$("pawIco").innerHTML=PAW("#7a5236");
+$("slots").innerHTML=HALLS.map((h,i)=>`<div class="slot" id="slot${i}">${icon(h.icon)}</div>`).join("");
+
+function hudOn(){$("ticket").classList.add("on");$("prints").classList.add("on")}
+function updPrints(){$("printsTxt").textContent=`Сліди: ${ST.prints.reduce((a,b)=>a+b,0)} з 6`}
+function stamp(i){ST.stamps[i]=1;const s=$("slot"+i);s.classList.add("done","anim");sfx("stamp")}
+
+/* слід Шустрика */
+function addPaw(i,x,y,rot=0,html,w){
+  if(ST.prints[i])return null;
+  const p=el("div","paw"+(html?" clue":""),html||PAW("#6e4a30"));p.style.left=x+"px";p.style.top=y+"px";p.style.rotate=rot+"deg";if(w){p.style.width=w+"px";p.style.height=html?"auto":w+"px"}
+  p.onclick=e=>{e.stopPropagation();if(ST.prints[i])return;ST.prints[i]=1;updPrints();p.classList.remove("pulse");p.classList.add("found");
+    toast(`Знайдено слід! ${ST.prints.reduce((a,b)=>a+b,0)} з 6`);sfx("magic");setTimeout(()=>p.remove(),1000);p.dispatchEvent(new Event("pawfound"))};
+  $("props").appendChild(p);
+  const t=setTimeout(()=>{if(!ST.prints[i])p.classList.add("pulse")},45000);
+  p.addEventListener("pawfound",()=>clearTimeout(t));
+  return p;
+}
+function clearProps(){$("props").innerHTML=""}
+
+/* ============ ФОНИ ============ */
+function floorLines(y0,vy,col){
+  let s="";for(let x=-1600;x<=3200;x+=160)s+=`<line x1="800" y1="${vy}" x2="${x}" y2="900" stroke="${col}" stroke-width="2"/>`;
+  [0.06,0.16,0.3,0.5,0.78].forEach(t=>{const y=y0+(900-y0)*t;s+=`<line x1="0" y1="${y}" x2="1600" y2="${y}" stroke="${col}" stroke-width="2"/>`});
+  return `<g clip-path="url(#floorClip)">${s}</g>`;
+}
+function vitrine(x,y,w,h,inner=""){
+  return `<g><rect x="${x-8}" y="${y+h}" width="${w+16}" height="${560-y-h+40}" rx="4" fill="#3b2a1e"/><rect x="${x-8}" y="${y+h}" width="${w+16}" height="12" fill="#5a4030"/>
+  <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#a9c2e8" fill-opacity=".14" stroke="#5a4030" stroke-width="6"/>${inner}
+  <path d="M${x+10} ${y+h-10} L${x+w*0.45} ${y+10}" stroke="#fff" stroke-opacity=".22" stroke-width="10"/></g>`;
+}
+function bgLobby(mess){
+  const win=x=>`<path d="M${x-85} 440 V205 A85 85 0 0 1 ${x+85} 205 V440 Z" fill="#7d8fd0" fill-opacity=".28" stroke="#130f26" stroke-width="12"/>
+   <path d="M${x} 120 V440 M${x-85} 300 H${x+85}" stroke="#130f26" stroke-width="7"/>
+   <polygon points="${x-85},440 ${x+85},440 ${x+230},860 ${x-10},860" fill="url(#beam)"/>`;
+  let labels="",prints="";
+  if(mess){
+    [[620,640,-14],[790,668,9],[985,632,-6],[1100,676,17],[700,688,4]].forEach(([x,y,r])=>labels+=`<g transform="rotate(${r} ${x} ${y})"><rect x="${x-44}" y="${y-17}" width="88" height="34" rx="4" fill="#efe1c2" stroke="#8a6a3a" stroke-width="3"/><path d="M${x-30} ${y-5}H${x+30}M${x-30} ${y+6}H${x+16}" stroke="#8a6a3a" stroke-width="3"/></g>`);
+    for(let i=0;i<9;i++){const x=560+i*72,y=612+(i%2)*16-i*2;prints+=`<g transform="translate(${x} ${y}) rotate(80) scale(.42)" opacity=".45">${PAW("#c9b089").replace(/<\/?svg[^>]*>/g,"")}</g>`}
+  }
+  return `<svg viewBox="0 0 1600 900"><defs>
+   <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2756"/><stop offset="1" stop-color="#1d1939"/></linearGradient>
+   <linearGradient id="flr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c3047"/><stop offset="1" stop-color="#211a2a"/></linearGradient>
+   <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe0ff" stop-opacity=".16"/><stop offset="1" stop-color="#cfe0ff" stop-opacity="0"/></linearGradient>
+   <radialGradient id="lamp"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
+   <clipPath id="floorClip"><rect x="0" y="560" width="1600" height="340"/></clipPath></defs>
+   <rect width="1600" height="560" fill="url(#wall)"/>
+   ${win(260)}${win(800)}${win(1340)}
+   <circle cx="830" cy="215" r="32" fill="#f4efd6"/><circle cx="842" cy="207" r="30" fill="#7d8fd0" fill-opacity=".35"/>
+   <rect x="500" y="60" width="66" height="500" fill="#352d63"/><rect x="488" y="52" width="90" height="22" fill="#40377a"/><rect x="1034" y="60" width="66" height="500" fill="#352d63"/><rect x="1022" y="52" width="90" height="22" fill="#40377a"/>
+   <g><rect x="560" y="28" width="480" height="70" rx="10" fill="#7b2335" stroke="#e2b25a" stroke-width="5"/>
+     <text x="800" y="74" text-anchor="middle" font-family="Nunito,Segoe UI,sans-serif" font-weight="900" font-size="32" fill="#f6d68c">Дарунки давніх цивілізацій</text></g>
+   <rect y="548" width="1600" height="14" fill="#140f24"/>
+   <rect y="560" width="1600" height="340" fill="url(#flr)"/>${floorLines(560,300,"#4c3d55")}
+   ${vitrine(600,420,110,90,`<path d="M630 505 q25 -70 50 0z" fill="#b67a4a"/>`)}
+   ${vitrine(890,420,110,90,`<rect x="920" y="470" width="50" height="35" fill="#c8b07a"/><circle cx="945" cy="455" r="16" fill="#c8b07a"/>`)}
+   ${mess?`<rect x="700" y="420" width="10" height="90" fill="#a9c2e8" fill-opacity=".25" transform="rotate(-25 705 420)"/>`:""}
+   <ellipse cx="800" cy="300" rx="420" ry="230" fill="url(#lamp)" opacity="${mess?0.5:0.3}"/>
+   ${prints}${labels}</svg>`;
+}
+function potSVG(id="p"){
+  const shape="M95,20 L225,20 Q229,31 222,42 C300,70 316,140 302,190 C287,262 232,318 206,340 L114,340 C88,318 33,262 18,190 C4,140 20,70 98,42 Q91,31 95,20 Z";
+  let sp="";[[78,126,0],[160,122,Math.PI],[242,126,0]].forEach(([x,y,s])=>{sp+=`<path d="${spiralPath(x,y,40,2.2,s)}" fill="none" stroke="#1e110a" stroke-width="10" stroke-linecap="round"/><path d="${spiralPath(x,y,40,2.2,s)}" fill="none" stroke="#f3dfc2" stroke-width="3" stroke-linecap="round" opacity=".9"/>`});
+  let zig="M10,262";for(let x=10;x<=310;x+=30)zig+=` L${x+15},${x/30%2?248:278} L${x+30},262`;
+  return `<svg viewBox="0 0 320 352" width="320" height="352"><defs>
+    <linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e3925a"/><stop offset=".6" stop-color="#c06a38"/><stop offset="1" stop-color="#8e4522"/></linearGradient>
+    <clipPath id="${id}c"><path d="${shape}"/></clipPath></defs>
+    <path d="${shape}" fill="url(#${id}g)"/>
+    <g clip-path="url(#${id}c)">
+      <rect x="0" y="60" width="320" height="134" fill="#f0d6b4" opacity=".55"/>
+      <path d="M0 60 H320 M0 194 H320" stroke="#1e110a" stroke-width="9"/>${sp}
+      <path d="M118 122 C135 96 145 150 160 122 M202 122 C185 150 175 96 160 122" stroke="#1e110a" stroke-width="7" fill="none"/>
+      <path d="${zig}" stroke="#1e110a" stroke-width="7" fill="none"/>
+      <path d="M0 300 H320" stroke="#1e110a" stroke-width="6"/>
+      <path d="M40 0 Q100 100 60 352" stroke="#fff" stroke-opacity=".12" stroke-width="22" fill="none"/>
+    </g>
+    <path d="M95,20 L225,20" stroke="#5c2a12" stroke-width="7" stroke-linecap="round"/>
+    <path d="${shape}" fill="none" stroke="#4a210d" stroke-width="4"/></svg>`;
+}
+function settlementSVG(rings,w=380,h=260){
+  let s="";const cx=w/2,cy=h/2;
+  for(let r=0;r<rings;r++){const rx=w*0.47*(r+1)/rings,ry=h*0.45*(r+1)/rings,n=Math.round(10+r*5);
+    s+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#8a5a2b" stroke-opacity=".35" stroke-width="2"/>`;
+    for(let i=0;i<n;i++){const a=i/n*2*Math.PI;s+=`<rect x="${(cx+rx*Math.cos(a)-4).toFixed(1)}" y="${(cy+ry*Math.sin(a)-4).toFixed(1)}" width="8" height="8" fill="#b5652f" stroke="#5a2a14" stroke-width="1.5"/>`}}
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><rect width="${w}" height="${h}" rx="18" fill="#cfb27c"/>${s}<circle cx="${cx}" cy="${cy}" r="10" fill="#7fa95a"/></svg>`;
+}
+function bgTrypillia(){
+  const frieze=[...Array(9)].map((_,i)=>`<path d="${spiralPath(90+i*180,105,26,2,i%2?Math.PI:0)}" fill="none" stroke="#1e110a" stroke-width="7" stroke-linecap="round"/>`).join("");
+  const potMini=(x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s})">${potSVG("m"+x).replace(/^<svg[^>]*>|<\/svg>$/g,"")}</g>`;
+  return `<svg viewBox="0 0 1600 900"><defs>
+   <linearGradient id="twall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5c2f1f"/><stop offset="1" stop-color="#3b1d13"/></linearGradient>
+   <linearGradient id="tflr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a3824"/><stop offset="1" stop-color="#2f1d13"/></linearGradient>
+   <radialGradient id="glow"><stop offset="0" stop-color="#ffc874" stop-opacity=".6"/><stop offset="1" stop-color="#ffc874" stop-opacity="0"/></radialGradient>
+   <clipPath id="floorClip"><rect x="0" y="600" width="1600" height="300"/></clipPath></defs>
+   <rect width="1600" height="600" fill="url(#twall)"/>
+   <rect y="70" width="1600" height="72" fill="#c9773f"/><path d="M0 70H1600M0 142H1600" stroke="#f1dcc0" stroke-width="5"/>${frieze}
+   <circle cx="260" cy="250" r="190" fill="url(#glow)"/><circle cx="1340" cy="250" r="190" fill="url(#glow)"/>
+   <path d="M245 230 h30 l-6 30 h-18z" fill="#c9a24a"/><circle cx="260" cy="222" r="9" fill="#ffe2a0"/>
+   <path d="M1325 230 h30 l-6 30 h-18z" fill="#c9a24a"/><circle cx="1340" cy="222" r="9" fill="#ffe2a0"/>
+   <rect x="600" y="160" width="400" height="44" rx="8" fill="#2b150d" stroke="#c9a24a" stroke-width="3"/>
+   <text x="800" y="191" text-anchor="middle" font-family="Nunito,Segoe UI,sans-serif" font-weight="900" font-size="24" fill="#f3d79a">ТРИПІЛЬСЬКА КУЛЬТУРА</text>
+   <rect x="560" y="226" width="480" height="250" fill="#a9c2e8" fill-opacity=".12" stroke="#2b150d" stroke-width="8"/>
+   <g transform="translate(610 252)">${settlementSVG(7,380,200).replace(/^<svg[^>]*>|<\/svg>$/g,"")}</g>
+   <rect x="552" y="476" width="496" height="124" fill="#2b150d"/><rect x="552" y="476" width="496" height="12" fill="#4a2a1a"/>
+   <rect x="380" y="470" width="150" height="130" fill="#2b150d"/><rect x="372" y="462" width="166" height="14" fill="#4a2a1a"/>${potMini(395,342,0.37)}
+   <rect x="1070" y="470" width="150" height="130" fill="#2b150d"/><rect x="1062" y="462" width="166" height="14" fill="#4a2a1a"/>${potMini(1085,342,0.37)}
+   <rect y="592" width="1600" height="12" fill="#1e0f09"/>
+   <rect y="600" width="1600" height="300" fill="url(#tflr)"/>${floorLines(600,330,"#40281a")}
+   <g transform="translate(860 520)"><rect x="-60" y="10" width="120" height="70" rx="6" fill="#2b150d"/><rect x="-68" y="2" width="136" height="12" fill="#4a2a1a"/>
+     <path d="M-30 2 l8 -18 l10 12 l9 -16 l12 22z" fill="#b5652f" stroke="#4a210d" stroke-width="2"/></g>
+   </svg>`;
+}
+function setBg(svg){$("bg").innerHTML=svg}
+/* фон-картинка з img/bg/web; якщо файлу немає — малюємо запасний SVG */
+function bgImage(name,fallback,overlay="",filter=""){
+  const b=$("bg");b.innerHTML="";
+  const im=new Image();im.src="img/bg/web/"+name+".webp";im.alt="";if(filter)im.style.filter=filter;
+  im.onerror=()=>{b.innerHTML=fallback};b.appendChild(im);
+  if(overlay)b.insertAdjacentHTML("beforeend",`<svg viewBox="0 0 1600 900">${overlay}</svg>`);
+}
+function bannerText(){return `<g font-family="Nunito,Segoe UI,sans-serif" font-weight="900" font-size="21" fill="#f6d68c" text-anchor="middle" letter-spacing="1" style="paint-order:stroke" stroke="#3a0d16" stroke-width="3">
+  <text x="802" y="118">ДАРУНКИ</text><text x="802" y="150">ДАВНІХ</text><text x="802" y="182">ЦИВІЛІЗАЦІЙ</text></g>`}
+function pawTrail(){let s="";for(let i=0;i<8;i++){const x=600+i*62,y=676+(i%2)*14;s+=`<g transform="translate(${x} ${y}) rotate(80) scale(.4)" opacity=".5">${PAW("#5a4030").replace(/<\/?svg[^>]*>/g,"")}</g>`}return s}
+
+/* ============ ПЛАН МУЗЕЮ ============ */
+function planTask(){
+  return task("План музею","Оберіть залу",(body,win)=>{
+    const cx=366,cy=300,R=[[-150],[-90],[-30],[30],[90],[150]];
+    const next=ST.stamps.indexOf(0);
+    let s=`<svg viewBox="0 0 732 600"><rect x="6" y="6" width="720" height="588" rx="24" fill="#efdcb2" stroke="#9c7a45" stroke-width="5"/>`;
+    const pos=HALLS.map((h,i)=>{const a=R[i][0]*Math.PI/180;return[cx+250*Math.cos(a),cy+205*Math.sin(a)]});
+    pos.forEach(([x,y])=>s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#b08a52" stroke-width="16" stroke-linecap="round"/>`);
+    s+=`<g class="${next<0?"room avail centre":""}"><circle class="box" cx="${cx}" cy="${cy}" r="92" fill="${next<0?"#fff6df":"#d9c08c"}" stroke="#7b2335" stroke-width="6"/>
+       <text x="${cx}" y="${cy-8}" text-anchor="middle" font-size="22" font-weight="900" fill="#5a2a14" font-family="Nunito,sans-serif">Центральна</text>
+       <text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="22" font-weight="900" fill="#5a2a14" font-family="Nunito,sans-serif">зала</text></g>
+       ${ST.stamps.every(Boolean)?"":`<g transform="translate(${cx-14} ${cy+30})"><rect y="12" width="28" height="22" rx="4" fill="#7b2335"/><path d="M5 13 v-6 a9 9 0 0 1 18 0 v6" fill="none" stroke="#7b2335" stroke-width="5"/></g>`}`;
+    HALLS.forEach((h,i)=>{const[x,y]=pos[i],done=ST.stamps[i],av=i===next,st=done?"done":av?"avail":"locked";
+      s+=`<g class="room ${st}" data-i="${i}" transform="translate(${x-105} ${y-46})">
+        <rect class="box" width="210" height="92" rx="18" fill="${done?"#e3f2d6":av?"#fff6df":"#d8ceb8"}" stroke="${done?"#4caf50":av?"#e8a530":"#a89a80"}" stroke-width="5"/>
+        <g transform="translate(10 16) scale(.6)" opacity="${st==="locked"?.35:1}">${ICON[h.icon](done?"#a82a2a":"#5a2a14")}</g>
+        <text x="132" y="${h.name.length>9?53:55}" text-anchor="middle" font-size="${h.name.length>9?20:26}" font-weight="900" fill="${st==="locked"?"#8a7e68":"#3a2614"}" font-family="Nunito,sans-serif">${h.name}</text>
+      </g>`});
+    s+="</svg>";
+    const p=el("div","",s);p.id="plan";body.appendChild(p);
+    hint(next>=0?`Натисніть на залу «${HALLS[next].name}» — вона світиться.`:"Усі шість печаток зібрано! Натисніть на центральну залу.");
+    const c=p.querySelector(".centre");if(c)c.addEventListener("click",()=>{taskEnd&&taskEnd("centre")});
+    p.querySelectorAll(".room:not(.centre)").forEach(g=>g.addEventListener("click",()=>{const i=+g.dataset.i;
+      if(i===next){taskEnd&&taskEnd(i)}else if(ST.stamps[i])hint("Цю залу ми вже врятували!");else hint("Ця зала поки зачинена. Спершу — та, що світиться.")}));
+  });
+}
+
+/* ============ ВСТУП ============ */
+async function intro(){
+  setLoc("Хол музею");bgImage("lobby",bgLobby(false),bannerText());castOnly([]);
+  show("murko",2);show("snizhok",1);
+  await say("murko",2,"Сніжку, дивись — це відкриття виставки «Дарунки давніх цивілізацій»! Завтра вранці ми прийдемо сюди першими.");
+  await say("snizhok",3,"А чому тоді там горить світло? І хтось гучно зітхнув…");
+  await say("pugach",4,"Біда, друзі! Виставку відкривають завтра, а в залах справжній розгардіяш: експонати переплутані, таблички лежать на підлозі, а деяких речей узагалі немає!");
+  await say("murko",3,"А скільки в нас часу?");
+  await say("pugach",7,"Ох… Зараз 21:00. Двері відчиняють о 9:00 ранку.");
+  await task("Скільки в нас часу?","Математика · час",(b,win)=>{
+    b.innerHTML=`<div class="clocks"><div class="clk">Зараз<b>21:00</b></div><div class="clk">Відкриття<b>9:00</b></div></div>
+      <div class="q" style="text-align:center">Скільки годин залишилося до відкриття виставки?</div><div class="opts" id="o"></div>`;
+    const H={9:"До півночі ще 3 години, а потім — до 9 ранку.",30:"Тут треба не додати, а порахувати, скільки годин мине від вечора до ранку."};
+    shuffle([9,12,30]).forEach(v=>{const bt=el("button","btn",v+" год");bt.onclick=()=>{
+      if(v===12){bt.classList.add("ok");win("Так! Від 21:00 до 24:00 — 3 години, і ще 9 годин до ранку: 3 + 9 = 12.")}
+      else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint(H[v])}};$("o").appendChild(bt)});
+  });
+  await say("murko",2,"Дванадцять годин! Встигнемо!");
+
+  await fadeTo(()=>{bgImage("lobby-mess",bgLobby(true),bannerText()+pawTrail());pose("pugach",1);pose("snizhok",4)});
+  await say(null,0,"У хол світить місяць. На підлозі лежать таблички, вітрина відчинена, а по пилу тягнуться крихітні сліди…");
+  await say("snizhok",5,"Дивіться, сліди! Дрібненькі… Хтось тут бігав.");
+  await say("pugach",2,"У кожній залі — одна давня цивілізація і те, що вона подарувала світові. Щоб усе повернути на місце, треба розв’язати загадки цих зал.");
+  await say("murko",5,"Друзі, допоможете врятувати виставку?",{btn:"Так, до справи! ▶"});
+
+  hudOn();updPrints();
+  await say("pugach",1,"Ось план музею. За кожну врятовану залу я поставлю печатку у ваш квиток. А центральна зала відчиниться, коли буде всі шість.");
+  await say("snizhok",2,"І сліди теж рахуватимемо! Може, вони приведуть нас до того, хто це зробив.");
+  await say("pugach",2,"Почнімо з найближчого — з того, що знайшли на нашій землі, в Україні. Натисніть на залу «Трипілля».");
+}
+
+/* ============ ЗАЛА 1. ТРИПІЛЛЯ ============ */
+async function hall1(){
+  await fadeTo(()=>{setLoc("Зала 1. Трипілля");music("m2","scene");bgImage("trypillia",bgTrypillia());clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",1);pose("snizhok",4);pose("pugach",1)});
+  addPaw(0,1010,640,-25);
+  await say("pugach",2,"Ці горщики зробили на нашій землі близько 7 000–5 000 років тому. Назву «трипільська культура» вчені дали за селом Трипілля на Київщині, де її вивчав археолог Вікентій Хвойка.");
+  await say("murko",3,"Ой… а цей горщик розбитий! На підставці лише черепки.");
+  await say("pugach",4,"Справді… Допоможіть його склеїти — перетягніть кожен черепок на своє місце.");
+  {const pre=new Image();pre.src="img/bg/web/trypillia-empty.webp";}
+  await task("1.1. Збери горщик","Логіка",(b,win)=>potPuzzle(b,win));
+  /* горщик склеєно: черепки зникають з підставки, на ній з’являється цілий горщик */
+  bgImage("trypillia-empty",bgTrypillia(),`<ellipse cx="800" cy="584" rx="118" ry="27" fill="#ffd98a" opacity=".35"/><g transform="translate(721 418) scale(.49)">${potSVG("onPlinth").replace(/^<svg[^>]*>|<\/svg>$/g,"")}</g>`);
+  await say("pugach",1,"Трипільці ліпили посуд без гончарного круга, вручну, і розмальовували його мінеральними фарбами — червоною, білою й чорною.");
+  await say("murko",4,"А візерунки на горщиках повторюються — спіраль, хвиля, знову спіраль…");
+  await say("pugach",2,"Так і є! Але на трьох смужках розпису візерунок обірвався. Продовжте його.");
+  await task("1.2. Продовж орнамент","Логіка · закономірності",(b,win)=>ornament(b,win));
+  await say("murko",2,"Ми знайшли всі закономірності!");
+  await say("pugach",1,"А ось макет трипільського поселення: будинки стоять кільцями. Хочете розв’язати задачу про нього?");
+  const ch=await task("1.3. Поселення-коло","Бонус · математика",(b,win)=>{
+    b.innerHTML=`<div style="display:flex;justify-content:center;margin:6px 0 20px">${settlementSVG(6,520,300)}</div>
+      <div class="q" style="text-align:center">Бонусне завдання можна розв’язати або пропустити — як вирішить учитель.</div><div class="opts" id="o"></div>`;
+    const a=el("button","btn primary","Розв’язати задачу"),s=el("button","btn ghost","Пропустити");
+    a.onclick=()=>taskEnd("yes");s.onclick=()=>taskEnd("no");$("o").append(a,s);
+  });
+  if(ch==="yes")await task("1.3. Поселення-коло","Бонус · математика",(b,win)=>settlement(b,win));
+  await say("pugach",5,"У найбільших трипільських поселеннях, за оцінками вчених, жили десятки тисяч людей — як у сучасному містечку!");
+  await say("pugach",6,"Залишилося повісити табличку до горщика. Котра з них — з цієї зали?");
+  await task("Поверни табличку","Що подарувала цивілізація",(b,win)=>labelTask(b,win,{
+    pic:potSVG("lb").replace('width="320" height="352"','width="200" height="220"'),ok:"Трипільська культура. Розписна кераміка",bad:["Давній Рим. Амфора","Давній Китай. Фарфор"],
+    hint:"Згадайте, у якій залі ми зараз і що в ній зберігається."}));
+  await hallEnd(0,"Чи то мені здається, чи там, на підлозі біля підставки, щось є? Натисніть на нього!",
+    "Знову слід! Крихітний, з п’ятьма пальчиками… Хто ж тут бігав?","Наступна зала — Єгипет! Вперед!");
+}
+async function hallEnd(i,hintLine,foundLine,nextLine){
+  if(!ST.prints[i]){
+    const p=$("props").querySelector(".paw");p&&p.classList.add("pulse");
+    await say("snizhok",4,hintLine,{lock:true,until:go=>p?p.addEventListener("pawfound",go,{once:true}):go()});
+  }
+  await say("murko",3,foundLine);
+  await say("pugach",5,"Залу врятовано! Ставлю печатку у ваш квиток.");
+  stamp(i);await sleep(900);
+  if(nextLine)await say("murko",2,nextLine);
+}
+
+/* --- 1.1 горщик-пазл --- */
+function potPuzzle(b,win){
+  const P=[[0,0,33,0,38,24,36,47,18,56,0,50],[33,0,67,0,62,26,64,55,50,44,36,47,38,24],[67,0,100,0,100,52,82,48,64,55,62,26],
+           [0,50,18,56,36,47,28,74,30,100,0,100],[36,47,50,44,64,55,72,78,70,100,30,100,28,74],[64,55,82,48,100,52,100,100,70,100,72,78]];
+  const W=320,H=352,FX=206,FY=84;
+  b.innerHTML=`<div class="q" style="text-align:center;margin-bottom:4px">Перетягніть черепки на контур горщика.</div><div id="puz"><div id="puzTarget">${potSVG("tg")}</div></div><div class="prog" id="pp">Склеєно: 0 з 6</div>`;
+  const tg=$("puzTarget");tg.style.opacity=".16";tg.style.filter="grayscale(1)";
+  const slots=shuffle([[110,110],[110,290],[110,460],[622,110],[622,290],[622,460]]);
+  let placed=0;const puz=$("puz");
+  P.forEach((pts,i)=>{
+    const poly=[];let sx=0,sy=0;for(let k=0;k<pts.length;k+=2){poly.push(pts[k]+"% "+pts[k+1]+"%");sx+=pts[k];sy+=pts[k+1]}
+    const n=pts.length/2,ccx=FX+sx/n/100*W,ccy=FY+sy/n/100*H;
+    const home=[slots[i][0]-ccx,slots[i][1]-ccy];
+    const sh=el("div","shard");const inn=el("div","in",potSVG("s"+i));inn.style.clipPath=`polygon(${poly.join(",")})`;sh.appendChild(inn);puz.appendChild(sh);
+    let x=home[0],y=home[1];const setT=()=>sh.style.transform=`translate(${x}px,${y}px)`;setT();
+    let st=null;
+    inn.addEventListener("pointerdown",e=>{e.preventDefault();inn.setPointerCapture(e.pointerId);sh.classList.remove("back");sh.classList.add("drag");st={px:e.clientX,py:e.clientY,x,y}});
+    inn.addEventListener("pointermove",e=>{if(!st)return;x=st.x+(e.clientX-st.px)/SCALE;y=st.y+(e.clientY-st.py)/SCALE;setT()});
+    const up=()=>{if(!st)return;st=null;sh.classList.remove("drag");
+      if(Math.hypot(x,y)<42){x=0;y=0;setT();sh.classList.add("placed");sfx("clay");placed++;$("pp").textContent=`Склеєно: ${placed} з 6`;hint("");
+        if(placed===6){tg.style.opacity="1";tg.style.filter="none";puz.classList.add("full");puz.querySelectorAll(".shard").forEach(s=>s.style.opacity="0");win("Горщик знову цілий!")}}
+      else{const cx2=ccx+x,cy2=ccy+y;
+        if(cx2>FX&&cx2<FX+W&&cy2>FY&&cy2<FY+H){sh.classList.add("back");x=home[0];y=home[1];setT();hint("Цей черепок — з іншого місця. Дивіться, як продовжується спіраль на краю черепка.")}}};
+    inn.addEventListener("pointerup",up);inn.addEventListener("pointercancel",up);
+  });
+}
+
+/* --- 1.2 орнамент --- */
+const SYM={
+  spiral:()=>`<path d="${spiralPath(50,50,38,2.4)}" fill="none" stroke="#1e110a" stroke-width="9" stroke-linecap="round"/>`,
+  wave:()=>`<path d="M6 52 C20 18 36 18 50 52 S80 86 94 52" fill="none" stroke="#1e110a" stroke-width="9" stroke-linecap="round"/>`,
+  dot:()=>`<circle cx="50" cy="50" r="18" fill="#1e110a"/><circle cx="50" cy="50" r="7" fill="#f3dfc2"/>`,
+  w:n=>{let s="";const gap=88/(n+1);for(let i=1;i<=n;i++){const y=6+gap*i;s+=`<path d="M10 ${y} C25 ${y-14} 38 ${y-14} 50 ${y} S75 ${y+14} 90 ${y}" fill="none" stroke="#1e110a" stroke-width="${n>3?6:8}" stroke-linecap="round"/>`}return s}
+};
+const sym=k=>`<svg viewBox="0 0 100 100">${k[0]==="w"&&k.length===2?SYM.w(+k[1]):SYM[k]()}</svg>`;
+function ornament(b,win){
+  const rows=[
+    {seq:["spiral","wave","spiral","wave"],ans:"spiral",opts:["wave","spiral","dot"],h:"Знайдіть, який шматочок візерунка повторюється: спіраль — хвиля, спіраль — хвиля…"},
+    {seq:["spiral","dot","dot","spiral","dot"],ans:"dot",opts:["spiral","dot","wave"],h:"Після кожної спіралі йдуть дві крапки. Скільки крапок уже стоїть після останньої спіралі?"},
+    {seq:["w1","w2","w3"],ans:"w4",opts:["w1","w3","w4","w5"],h:"Порахуйте хвилі в кожній клітинці: щоразу їх стає на одну більше."}];
+  let r=0;
+  const draw=()=>{
+    const R=rows[r];hint("");
+    b.innerHTML=`<div class="q" style="text-align:center">Яким має бути наступний знак у смужці розпису?</div>
+      <div class="orow">${R.seq.map(s=>`<div class="tile">${sym(s)}</div>`).join("")}<div class="tile q" id="qt">?</div></div>
+      <div class="opts" id="o"></div><div class="prog" style="margin-top:18px">Смужка ${r+1} з 3</div>`;
+    shuffle(R.opts).forEach(k=>{const bt=el("button","btn obtn",sym(k));bt.dataset.k=k;bt.onclick=async()=>{
+      if(k===R.ans){bt.classList.add("ok");const q=$("qt");q.innerHTML=sym(k);q.classList.add("ok");
+        if(r<2){hint("Правильно!","good");document.querySelectorAll(".obtn").forEach(x=>x.disabled=true);await sleep(1100);r++;draw()}else win("Усі три смужки розпису відновлено!")}
+      else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint(R.h)}};$("o").appendChild(bt)});
+  };draw();
+}
+
+/* --- 1.3 поселення (бонус) --- */
+function settlement(b,win){
+  const r=rnd(6,9),h=pick([100,110,120,130,140,150]),f=rnd(4,6),houses=r*h,people=houses*f;
+  b.innerHTML=`<div style="display:flex;gap:22px;align-items:center"><div style="flex:0 0 auto">${settlementSVG(r,260,190)}</div>
+     <div class="q" style="margin:0">У селищі <b>${r} кілець</b>, на кожному — <b>${h} будинків</b>. У кожному будинку жила родина з <b>${f} осіб</b>.</div></div>
+    <div style="margin-top:18px">
+     <div class="numrow"><span>Скільки всього будинків?</span><input id="i1" inputmode="numeric" autocomplete="off"><button class="btn" id="c1">Перевірити</button></div>
+     <div class="numrow"><span>Скільки людей жило в селищі?</span><input id="i2" inputmode="numeric" autocomplete="off" disabled><button class="btn" id="c2" disabled>Перевірити</button></div>
+    </div><div class="prog" style="margin-top:8px">Числа задачі змінюються при кожному запуску.</div>`;
+  const num=v=>parseInt(String(v).replace(/[\s ]/g,""),10);
+  const chk=(inp,val,ok,bad)=>{if(num(inp.value)===val){inp.classList.remove("bad");inp.classList.add("ok");inp.disabled=true;ok()}else{inp.classList.remove("bad");void inp.offsetWidth;inp.classList.add("bad");sfx("bad");hint(bad)}};
+  const s1=()=>chk($("i1"),houses,()=>{$("c1").disabled=true;$("i2").disabled=false;$("c2").disabled=false;$("i2").focus();hint(`Так: ${r} × ${h} = ${fmt(houses)} будинків.`,"good")},"Кількість кілець помножте на кількість будинків на одному кільці.");
+  const s2=()=>chk($("i2"),people,()=>{$("c2").disabled=true;win(`${fmt(houses)} × ${f} = ${fmt(people)} людей. Справжнє місто!`)},"Кількість будинків помножте на кількість людей в одній родині.");
+  $("c1").onclick=s1;$("c2").onclick=s2;
+  $("i1").onkeydown=e=>{if(e.key==="Enter")s1()};$("i2").onkeydown=e=>{if(e.key==="Enter")s2()};
+  setTimeout(()=>$("i1").focus(),350);
+}
+
+/* --- табличка --- */
+function labelTask(b,win,o){
+  b.innerHTML=`<div style="display:flex;justify-content:center;margin:4px 0 14px">${o.pic}</div>
+    <div class="q" style="text-align:center;margin-bottom:6px">Яка табличка підходить до цього експоната?</div><div class="labels" id="o"></div>`;
+  shuffle([o.ok,...o.bad]).forEach(t=>{const bt=el("button","btn plank",t);bt.onclick=()=>{
+    if(t===o.ok){bt.classList.add("ok");win("Табличку повернуто на місце!")}else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint(o.hint)}};$("o").appendChild(bt)});
+}
+
+/* ============ ЗАЛА 2. ЄГИПЕТ ============ */
+function bgPlain(c1,c2){return `<svg viewBox="0 0 1600 900"><defs><linearGradient id="pl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="1600" height="900" fill="url(#pl)"/><rect y="600" width="1600" height="300" fill="#000" opacity=".25"/></svg>`}
+const EG={
+  1:c=>`<rect x="44" y="12" width="12" height="76" rx="5" fill="${c}"/>`,
+  10:c=>`<path d="M26 88 V46 A24 24 0 0 1 74 46 V88" fill="none" stroke="${c}" stroke-width="11" stroke-linecap="round"/>`,
+  100:c=>`<path d="${spiralPath(50,42,30,2.2)}" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"/><path d="M50 72 V92" stroke="${c}" stroke-width="8" stroke-linecap="round"/>`,
+  1000:c=>`<path d="M50 92 V44" stroke="${c}" stroke-width="7"/><path d="M50 46 C30 40 26 16 34 8 C40 20 46 26 50 30 C54 26 60 20 66 8 C74 16 70 40 50 46Z" fill="${c}"/><path d="M50 70 C40 62 28 62 22 68 M50 70 C60 62 72 62 78 68" stroke="${c}" stroke-width="6" fill="none" stroke-linecap="round"/>`
+};
+const egSym=(v,c="#3b2a14",sz=46)=>`<svg viewBox="0 0 100 100" width="${sz}" height="${sz}">${EG[v](c)}</svg>`;
+const EGN={1000:"лотос",100:"мотузка",10:"дужка",1:"паличка"};
+function egWrite(n,sz=54){
+  const d=[Math.floor(n/1000),Math.floor(n/100)%10,Math.floor(n/10)%10,n%10],V=[1000,100,10,1];
+  return V.map((v,k)=>d[k]?`<div class="egg">${Array(d[k]).fill(egSym(v,"#3b2a14",sz)).join("")}</div>`:"").join("");
+}
+function egKey(){return `<div class="egkey">${[1,10,100,1000].map(v=>`<span>${egSym(v,"#3b2a14",40)}<b>= ${fmt(v)}</b></span>`).join("")}</div>`}
+function egNumbers(b,win){
+  const mk=()=>rnd(1,4)*1000+rnd(0,5)*100+rnd(0,5)*10+rnd(1,5);
+  let step=0;const reads=[mk(),mk()];
+  const target=rnd(1,3)*1000+rnd(1,4)*100+rnd(0,4)*10+rnd(1,5);
+  const drawRead=()=>{
+    const n=reads[step];const dd=[Math.floor(n/1000),Math.floor(n/100)%10,Math.floor(n/10)%10,n%10];
+    const sw=dd[0]*1000+dd[2]*100+dd[1]*10+dd[3];
+    const opts=[...new Set([n,sw===n?n+10:sw,n+100,n-1].filter(x=>x>0))].slice(0,4);
+    b.innerHTML=`${egKey()}<div class="q" style="text-align:center">Яке число записане на стіні? (${step+1} з 2)</div>
+      <div class="egwall">${egWrite(n)}</div><div class="opts" id="o"></div>`;hint("");
+    shuffle(opts).forEach(v=>{const bt=el("button","btn",fmt(v));bt.onclick=async()=>{
+      if(v===n){bt.classList.add("ok");hint("Правильно!","good");document.querySelectorAll("#o .btn").forEach(x=>x.disabled=true);await sleep(1000);step++;step<2?drawRead():drawWrite()}
+      else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint("Кожен знак — це свій розряд. Порахуйте, скільки лотосів (тисячі), мотузок (сотні), дужок (десятки) і паличок (одиниці).")}};$("o").appendChild(bt)});
+  };
+  const drawWrite=()=>{
+    const c={1000:0,100:0,10:0,1:0};
+    b.innerHTML=`${egKey()}<div class="q" style="text-align:center">Запишіть єгипетськими знаками число <b style="font-size:38px;color:#7b2335">${fmt(target)}</b></div>
+      <div class="egwall" id="ew"><span class="egph">Натискайте на знаки внизу</span></div>
+      <div class="egbtns" id="eb"></div><div class="opts"><button class="btn primary" id="chk">Перевірити</button></div>`;hint("");
+    const val=()=>c[1000]*1000+c[100]*100+c[10]*10+c[1];
+    const redraw=()=>{$("ew").innerHTML=val()?egWrite(val()):`<span class="egph">Натискайте на знаки внизу</span>`};
+    [1000,100,10,1].forEach(v=>{const g=el("div","egb",`<button class="btn eadd">${egSym(v,"#3b2a14",44)}<span>+ ${EGN[v]}</span></button><button class="btn edel" title="Прибрати">−</button>`);
+      g.children[0].onclick=()=>{if(c[v]<9){c[v]++;redraw()}};g.children[1].onclick=()=>{if(c[v]>0){c[v]--;redraw()}};$("eb").appendChild(g)});
+    $("chk").onclick=()=>{
+      if(val()===target){$("ew").classList.add("ok");win(`Так! ${fmt(target)} записано правильно.`)}
+      else{const d=[Math.floor(target/1000),Math.floor(target/100)%10,Math.floor(target/10)%10,target%10];
+        hint(`У числі ${fmt(target)}: ${d[0]} тис., ${d[1]} сот., ${d[2]} дес. і ${d[3]} од. Скільки ж має бути лотосів, мотузок, дужок і паличок?`)}};
+  };
+  drawRead();
+}
+function quiz(b,win,qs,done){
+  let k=0;
+  const draw=()=>{const Q=qs[k];hint("");
+    b.innerHTML=(Q.pic||"")+`<div class="q" style="text-align:center">${Q.q}</div><div class="opts" id="o"></div><div class="prog" style="margin-top:14px">Питання ${k+1} з ${qs.length}</div>`;
+    shuffle(Q.o).forEach(v=>{const bt=el("button","btn",v);bt.onclick=async()=>{
+      if(v===Q.a){bt.classList.add("ok");document.querySelectorAll("#o .btn").forEach(x=>x.disabled=true);
+        if(k<qs.length-1){hint(Q.ok||"Правильно!","good");await sleep(1300);k++;draw()}else win(done||Q.ok)}
+      else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint(Q.h)}};$("o").appendChild(bt)});
+  };draw();
+}
+const nileSVG=`<svg viewBox="0 0 660 120" width="660" height="120" style="display:block;margin:0 auto 14px">
+  <rect width="660" height="120" rx="16" fill="#f1dfb8"/>
+  ${[["Розлив","#4f8fc0"],["Сходи","#6aa84f"],["Збір врожаю","#d9a032"]].map(([t,c],i)=>`<g transform="translate(${18+i*214} 16)"><rect width="196" height="88" rx="12" fill="${c}"/>
+   ${[0,1,2,3].map(j=>`<rect x="${12+j*45}" y="44" width="36" height="32" rx="6" fill="#fff" opacity=".85"/><text x="${30+j*45}" y="66" text-anchor="middle" font-size="15" font-weight="800" fill="#5a3a14" font-family="Nunito,sans-serif">30</text>`).join("")}
+   <text x="98" y="30" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" font-family="Nunito,sans-serif">${t}</text></g>`).join("")}</svg>`;
+function pyramidBonus(b,win){
+  const pic=`<svg viewBox="0 0 560 330" width="560" height="330" style="display:block;margin:0 auto">
+    <rect width="560" height="330" rx="16" fill="#1f2a48"/><circle cx="60" cy="50" r="20" fill="#f4efd6"/>
+    <rect y="300" width="560" height="30" fill="#c9a66b"/>
+    <path d="M40 300 L170 8 L300 300Z" fill="#e2c48a" stroke="#8a6a3a" stroke-width="4"/><path d="M170 8 L300 300 L230 300Z" fill="#c9a66b"/>
+    <text x="170" y="250" text-anchor="middle" font-size="30" font-weight="900" fill="#5a3a14" font-family="Nunito,sans-serif">146 м</text>
+    ${[0,1,2,3,4].map(i=>`<g transform="translate(360 ${300-(i+1)*58})"><rect width="110" height="58" fill="#8fa3c8" stroke="#2d3a5c" stroke-width="3"/>${[0,1,2].map(j=>`<rect x="${12+j*34}" y="14" width="18" height="26" fill="#ffe7a0"/>`).join("")}<text x="125" y="36" font-size="20" font-weight="800" fill="#e8eefc" font-family="Nunito,sans-serif">30 м</text></g>`).join("")}
+  </svg>`;
+  b.innerHTML=pic+`<div class="q" style="text-align:center;margin-top:12px">Чи вища піраміда за 5 таких будинків, поставлених один на одного?</div><div class="opts" id="o"></div>`;
+  const A=el("button","btn","Так, вища"),B=el("button","btn","Ні, трохи нижча");
+  A.onclick=()=>{A.classList.remove("bad");void A.offsetWidth;A.classList.add("bad");sfx("bad");hint("Порахуйте висоту будинків: 5 × 30 = ? І порівняйте зі 146 м.")};
+  B.onclick=()=>{B.classList.add("ok");A.disabled=B.disabled=true;hint("Так: 5 × 30 = 150 м, а піраміда — 146 м.","good");
+    const r=el("div","numrow",`<span>На скільки метрів нижча?</span><input id="i1" inputmode="numeric" autocomplete="off"><button class="btn" id="c1">Перевірити</button>`);r.style.justifyContent="center";b.appendChild(r);
+    const ck=()=>{const v=parseInt($("i1").value,10);if(v===4){$("i1").classList.add("ok");win("Лише на 4 метри! Майже як п’ять дев’ятиповерхівок.")}else{const i=$("i1");i.classList.remove("bad");void i.offsetWidth;i.classList.add("bad");sfx("bad");hint("Від 150 відніміть 146.")}};
+    $("c1").onclick=ck;$("i1").onkeydown=e=>{if(e.key==="Enter")ck()};setTimeout(()=>$("i1").focus(),200)};
+  $("o").append(A,B);
+}
+const stelaSVG=`<svg viewBox="0 0 220 240" width="200" height="218"><path d="M20 230 V40 Q110 -10 200 40 V230Z" fill="#d8c08e" stroke="#7a5a2e" stroke-width="5"/>
+  <circle cx="110" cy="58" r="22" fill="#e8a530"/>${[...Array(12)].map((_,i)=>`<rect x="${42+(i%4)*36}" y="${100+Math.floor(i/4)*36}" width="28" height="28" rx="4" fill="#fff6dc" stroke="#7a5a2e" stroke-width="3"/>`).join("")}
+  <path d="M30 212 q20 -12 40 0 t40 0 t40 0 t40 0" stroke="#4f8fc0" stroke-width="6" fill="none"/></svg>`;
+async function hall2(){
+  await fadeTo(()=>{setLoc("Зала 2. Єгипет");music("m3","scene");bgImage("egypt",bgPlain("#6b5032","#2f2217"));clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",1);pose("snizhok",4);pose("pugach",1);
+    /* у Єгипті Сніжок стає праворуч від статуетки кішки, а Пугач трохи відходить, щоб звільнити місце для хвоста */
+    setCx("snizhok",705);setCx("pugach",1450)});
+  addPaw(1,1032,514,0,`<img src="${IMG}shustryk-2.webp" alt="">`,150);
+  await say("murko",3,"Статуетка кішки! Майже як я…");
+  await say("pugach",2,"Єгиптяни дуже поважали котів. А ще вони записували числа картинками. Але хтось стер частину стіни з цифрами…");
+  await task("2.1. Єгипетські числа","Математика · нумерація",(b,win)=>egNumbers(b,win));
+  await say("pugach",1,"У єгиптян не було цифри нуль, тому запис числа займав багато місця. Спробуйте вдома записати їхніми знаками 9 999!");
+  await say("pugach",2,"Щороку Ніл розливався і залишав на полях родючий мул. Щоб знати, коли сіяти, єгиптяни склали календар.");
+  await task("2.2. Календар Нілу","Математика · «Я досліджую світ»",(b,win)=>quiz(b,win,[
+    {pic:nileSVG,q:"Рік — 12 місяців по 30 днів і ще 5 святкових днів. Скільки днів у році?",o:["360","365","350","47"],a:"365",h:"Спершу 12 × 30, а потім додайте 5 святкових днів.",ok:"12 × 30 + 5 = 365 днів!"},
+    {pic:nileSVG,q:"Рік мав 3 сезони по 4 місяці. Скільки днів у кожному сезоні?",o:["120","34","90","12"],a:"120",h:"4 місяці по 30 днів: 4 × 30.",ok:"4 × 30 = 120 днів."},
+    {pic:nileSVG,q:"Скільки сезонів у році єгиптян — і скільки пір року в нас?",o:["3 і 4","4 і 4","3 і 3","12 і 4"],a:"3 і 4",h:"У нас — зима, весна, літо й осінь. А в єгиптян — Розлив, Сходи, Збір врожаю.",ok:"Так: у єгиптян 3 сезони, а в нас 4 пори року."}],
+    "Календар Нілу відновлено!"));
+  await say("murko",2,"365 днів — як і в нашому році!");
+  await say("pugach",5,"Саме так! Наш рік теж має 365 днів, а раз на чотири роки — 366.");
+  await say("pugach",2,"А ось макет пірамід у Гізі. Хочете розв’язати задачу про найбільшу з них?");
+  const ch=await task("2.3. Вища за всіх","Бонус · математика",(b,win)=>{
+    b.innerHTML=`<div class="q" style="text-align:center;margin:20px 0">Бонусне завдання можна розв’язати або пропустити — як вирішить учитель.</div><div class="opts" id="o"></div>`;
+    const a=el("button","btn primary","Розв’язати задачу"),s=el("button","btn ghost","Пропустити");a.onclick=()=>taskEnd("yes");s.onclick=()=>taskEnd("no");$("o").append(a,s)});
+  if(ch==="yes")await task("2.3. Вища за всіх","Бонус · математика",(b,win)=>pyramidBonus(b,win));
+  await say("pugach",5,"Піраміда Хеопса була заввишки близько 146 метрів. І майже 4 000 років вона була найвищою спорудою на Землі!");
+  await say("snizhok",5,"Ой, а ця вітрина в кутку порожня! Невже й звідси щось зникло?");
+  await say("pugach",4,"Ні, ця вітрина порожня завжди. Колись у Єгипті, в Олександрії, була найбільша бібліотека давнини. Від неї майже нічого не лишилося…");
+  await say("pugach",1,"Хто знає, може, колись хтось дізнається, як вона виглядала.");
+  await say("murko",4,"Олександрійська бібліотека… Я б дуже хотів її побачити!");
+  await say("pugach",6,"А тепер — табличка. Що найважливіше подарував світові Давній Єгипет із того, що ми сьогодні дізналися?");
+  await task("Поверни табличку","Що подарувала цивілізація",(b,win)=>labelTask(b,win,{
+    pic:stelaSVG,ok:"Давній Єгипет. Календар на 365 днів",bad:["Месопотамія. Клинопис","Давня Греція. Олімпійські ігри"],
+    hint:"Згадайте, що ми рахували в цій залі: місяці, сезони, дні…"}));
+  await hallEnd(1,"Подивіться уважно на макет пірамід — там щось пухнасте! Натисніть на нього!",
+    "Хвіст! Пухнастий, з червоним бантиком… Хтось ховається в музеї!","Далі — Месопотамія! Вперед!");
+}
+
+/* ============ ЗАЛА 3. МЕСОПОТАМІЯ ============ */
+const CU={
+  1:c=>`<path d="M26 8 H74 L50 36 Z" fill="${c}"/><rect x="45" y="30" width="10" height="64" rx="3" fill="${c}"/>`,
+  10:c=>`<path d="M88 14 L12 50 L88 86 L68 50 Z" fill="${c}"/>`
+};
+const cuSym=(v,sz=40,c="#4a2e18")=>`<svg viewBox="0 0 100 100" width="${sz}" height="${sz}">${CU[v](c)}</svg>`;
+function cuWrite(n,sz=46){
+  const t=Math.floor(n/10),o=n%10;
+  const col=(k,v,per)=>{let h="";for(let i=0;i<k;i+=per)h+=`<div class="cucol">${Array(Math.min(per,k-i)).fill(cuSym(v,sz)).join("")}</div>`;return h};
+  return `<div class="cugrp">${col(t,10,3)}</div><div class="cugrp ones">${o?`<div class="cuones">${Array(o).fill(cuSym(1,sz)).join("")}</div>`:""}</div>`;
+}
+function cuNumbers(b,win){
+  const mk=()=>rnd(1,5)*10+rnd(1,9);
+  const reads=[mk(),mk(),mk()];let step=0;
+  const key=`<div class="egkey"><span>${cuSym(1,40)}<b>= 1</b></span><span>${cuSym(10,40)}<b>= 10</b></span></div>`;
+  const drawRead=()=>{
+    const n=reads[step],t=Math.floor(n/10),o=n%10;
+    const cand=[n,o<=5&&t<=9?o*10+t:n+10,n>20?n-10:n+20,o<9?n+1:n-1,n+10].filter(x=>x>0&&x<60);
+    const opts=[...new Set(cand)].slice(0,4);
+    b.innerHTML=`${key}<div class="q" style="text-align:center">Яке число на глиняній табличці? (${step+1} з 3)</div>
+      <div class="cutab">${cuWrite(n)}</div><div class="opts" id="o"></div>`;hint("");
+    shuffle(opts).forEach(v=>{const bt=el("button","btn",String(v));bt.onclick=async()=>{
+      if(v===n){bt.classList.add("ok");hint(`Так: ${t} кутов${t===1?"ий":"их"} × 10 і ${o} вертикальн${o===1?"ий":"их"} = ${n}.`,"good");document.querySelectorAll("#o .btn").forEach(x=>x.disabled=true);await sleep(1300);step++;step<3?drawRead():drawWrite()}
+      else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint("Кутовий клин — це десяток, вертикальний — одиниця. Порахуйте окремо кутові й вертикальні.")}};$("o").appendChild(bt)});
+  };
+  const drawWrite=()=>{
+    const target=mk();let t=0,o=0;
+    b.innerHTML=`${key}<div class="q" style="text-align:center">«Видавіть» на табличці число <b style="font-size:38px;color:#7b2335">${target}</b></div>
+      <div class="cutab" id="ct"></div><div class="egbtns" id="eb"></div><div class="opts"><button class="btn primary" id="chk">Перевірити</button></div>`;hint("");
+    const redraw=()=>{$("ct").innerHTML=(t||o)?cuWrite(t*10+o):`<span class="egph">Натискайте на клинці внизу</span>`};redraw();
+    [[10,"+ кутовий",()=>{if(t<5)t++},()=>{if(t>0)t--}],[1,"+ вертикальний",()=>{if(o<9)o++},()=>{if(o>0)o--}]].forEach(([v,lab,add,del])=>{
+      const g=el("div","egb",`<button class="btn eadd">${cuSym(v,44)}<span>${lab}</span></button><button class="btn edel" title="Прибрати">−</button>`);
+      g.children[0].onclick=()=>{add();redraw()};g.children[1].onclick=()=>{del();redraw()};$("eb").appendChild(g)});
+    $("chk").onclick=()=>{if(t*10+o===target){$("ct").classList.add("ok");win(`Так! ${target} записано клинописом.`)}
+      else hint(`У числі ${target} — ${Math.floor(target/10)} дес. і ${target%10} од. Скільки ж має бути кутових і вертикальних клинців?`)};
+  };
+  drawRead();
+}
+function timeQs(){
+  const a=pick([2,3,4,5]),sx=pick([120,180,240,300]),m=pick([10,15,20,25,40,45]),n=pick([80,90,100,130,150]);
+  const hm=x=>`${Math.floor(x/60)} год ${x%60} хв`;
+  return shuffle([
+    {q:`${a} год = ? хв`,o:[`${60*a} хв`,`${100*a} хв`,`${10*a} хв`,`${60*a+60} хв`],a:`${60*a} хв`,h:"В одній годині 60 хвилин, а не 100. Скільки хвилин у кількох годинах?",ok:`${a} × 60 = ${60*a} хв.`},
+    {q:`${sx} с = ? хв`,o:[`${sx/60} хв`,`${sx/10} хв`,`${sx/100} хв`.replace(".",","),`${sx/60+1} хв`],a:`${sx/60} хв`,h:"В одній хвилині 60 секунд. Скільки разів по 60 є в цьому числі?",ok:`${sx} : 60 = ${sx/60} хв.`},
+    {q:`1 год ${m} хв = ? хв`,o:[`${60+m} хв`,`${100+m} хв`,`${1+m} хв`,`${60+m+10} хв`],a:`${60+m} хв`,h:"1 година — це 60 хвилин. Додайте ще хвилини.",ok:`60 + ${m} = ${60+m} хв.`},
+    {q:`${n} хв = ?`,o:[hm(n),n>=100?`1 год ${n-100} хв`:`${Math.floor(n/60)} год ${n%60+20} хв`,`${Math.floor(n/60)+1} год ${n%60} хв`,`${Math.floor(n/60)} год ${n%60+10} хв`],a:hm(n),h:"Відніміть повні години по 60 хвилин — що залишиться?",ok:`${n} хв = ${hm(n)}.`}
+  ]).map(q=>({...q,o:[...new Set(q.o)]}));
+}
+function lawTablet(b,win){
+  const words=["хто","зламав","чужий","віз,","той","повинен","його","полагодити"];
+  let k=0;
+  b.innerHTML=`<div class="q" style="text-align:center">Складіть правило з табличного уламку: натискайте на слова по черзі.</div>
+    <div class="lawline" id="ll"></div><div class="chips" id="ch"></div>`;
+  shuffle(words).forEach(w=>{const c=el("button","btn chip",w.replace(",",""));c.onclick=()=>{
+    if(w===words[k]){c.classList.add("ok");c.disabled=true;$("ll").insertAdjacentHTML("beforeend",`<span>${w}</span>`);k++;hint("");if(k===words.length)step2()}
+    else{c.classList.remove("bad");void c.offsetWidth;c.classList.add("bad");sfx("bad");hint("Подумайте: хто що зробив — і що тепер має зробити?")}};$("ch").appendChild(c)});
+  const step2=()=>{
+    $("ch").innerHTML="";const need=new Set(["cap","dot"]);const got=new Set();
+    b.insertAdjacentHTML("beforeend",`<div class="q" style="text-align:center;margin-top:14px">Слова на місці! Чого ще не вистачає реченню? Оберіть усе потрібне.</div><div class="opts" id="o"></div>`);
+    [["cap","Великої літери на початку"],["dot","Крапки в кінці"],["q","Знака питання в кінці"],["comma","Коми після «хто»"]].forEach(([id,t])=>{
+      const bt=el("button","btn",t);bt.style.fontSize="24px";bt.onclick=()=>{
+        if(need.has(id)){bt.classList.add("ok");bt.disabled=true;got.add(id);
+          if(got.size===need.size){$("ll").innerHTML="<span>Хто зламав чужий віз, той повинен його полагодити.</span>";$("ll").classList.add("ok");win("Правило відновлено!")}else hint("Так! А ще?","good")}
+        else{bt.classList.remove("bad");void bt.offsetWidth;bt.classList.add("bad");sfx("bad");hint(id==="q"?"Це правило, а не запитання — воно нічого не питає.":"Кома вже стоїть там, де треба: після слова «віз».")}};$("o").appendChild(bt)});
+  };
+}
+const tabletSVG=`<svg viewBox="0 0 240 220" width="220" height="200"><rect x="20" y="20" width="200" height="180" rx="26" fill="#c9a77a" stroke="#7a5a35" stroke-width="5"/>
+  ${[0,1,2,3,4].map(r=>[0,1,2,3,4,5].map(c=>`<g transform="translate(${44+c*28} ${44+r*30}) scale(.22)">${(r+c)%3?CU[1]("#5a3a1e"):CU[10]("#5a3a1e")}</g>`).join("")).join("")}</svg>`;
+async function hall3(){
+  await fadeTo(()=>{setLoc("Зала 3. Месопотамія");music("m4","scene");bgImage("mesopotamia",bgPlain("#2a3a6b","#1a1f33"));clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",1);pose("snizhok",4);pose("pugach",1);
+    setCx("pugach",1470)});
+  addPaw(2,902,532,-10,null,40);
+  await say("snizhok",3,"А це що за печиво з дрібними рисками?");
+  await say("pugach",5,"Ха-ха, це глиняні таблички! У Месопотамії, між річками Тигр і Євфрат, писали загостреною паличкою по сирій глині. Риски схожі на клинці — тому й «клинопис».");
+  await say("pugach",2,"Клинцями записували і числа. Але таблички переплуталися — допоможіть їх прочитати!");
+  await task("3.1. Клинописні числа","Математика · нумерація",(b,win)=>cuNumbers(b,win));
+  await say("murko",2,"Лише два знаки — а можна записати будь-яке число до 59!");
+  await say("pugach",1,"Жителі Месопотамії лічили шістдесятками. Від них і пішло, що в годині 60 хвилин, а в хвилині — 60 секунд. Тож ваш годинник може подякувати їм!");
+  await task("3.2. Чому в годині 60 хвилин","Математика · одиниці часу",(b,win)=>quiz(b,win,timeQs(),"Усі перетворення правильні!"));
+  await say("murko",4,"Тепер зрозуміло, чому не 100 хвилин…");
+  await say("pugach",2,"А ось і колесо! Саме в Месопотамії близько 5 500 років тому з’явилося одне з перших коліс.");
+  await say("pugach",6,"Вавилонський цар Хаммурапі наказав вирізати закони на камені, щоб їх бачили всі. А ця дитяча табличка з правилом розсипалася! Хочете її скласти?");
+  const ch=await task("3.3. Табличка законів","Бонус · українська мова",(b,win)=>{
+    b.innerHTML=`<div class="q" style="text-align:center;margin:20px 0">Бонусне завдання можна розв’язати або пропустити — як вирішить учитель.</div><div class="opts" id="o"></div>`;
+    const a=el("button","btn primary","Скласти табличку"),s=el("button","btn ghost","Пропустити");a.onclick=()=>taskEnd("yes");s.onclick=()=>taskEnd("no");$("o").append(a,s)});
+  if(ch==="yes"){await task("3.3. Табличка законів","Бонус · українська мова",(b,win)=>lawTablet(b,win));
+    await say("murko",2,"Правило про віз! А віз їздить на колесах — теж подарунок Месопотамії.")}
+  await say("pugach",6,"Залишилася табличка для вітрини. Що подарувала світові Месопотамія?");
+  await task("Поверни табличку","Що подарувала цивілізація",(b,win)=>labelTask(b,win,{
+    pic:tabletSVG,ok:"Месопотамія. Клинопис і колесо",bad:["Давній Китай. Папір","Давній Єгипет. Піраміди"],
+    hint:"Згадайте, що лежить у цій залі на полицях і що стоїть біля стіни з левами."}));
+  await hallEnd(2,"Подивіться на полицю з табличками — на одній щось відбилося! Натисніть на нього!",
+    "Свіжий відбиток лапки — просто на глиняній табличці! Хтось лазив по полиці…","Далі — Китай! Вперед!");
+}
+
+/* ============ ЗАЛА 4. КИТАЙ ============ */
+function paperAlgo(b,win){
+  const steps=["Подрібнити кору дерев і старе ганчір’я","Замочити й розварити у воді","Розтерти в рідку кашу","Зачерпнути кашу рамкою з ситом","Віджати й висушити аркуш"];
+  const pics=["✂","♨","◍","▦","☀"];
+  const slots=[null,null,null,null,null];
+  b.innerHTML=`<div class="q" style="text-align:center">Розставте кроки виготовлення паперу по порядку, а потім натисніть «Виконати».</div>
+    <div class="algo" id="al"></div><div class="chips" id="ch"></div><div class="opts"><button class="btn primary" id="run" disabled>Виконати ▶</button></div>`;
+  const draw=()=>{
+    $("al").innerHTML=slots.map((v,i)=>`<div class="aslot${v===null?"":" full"}" data-i="${i}"><b>${i+1}</b><span>${v===null?"…":steps[v]}</span></div>`).join("");
+    $("al").querySelectorAll(".aslot.full").forEach(d=>d.onclick=()=>{slots[+d.dataset.i]=null;hint("");draw()});
+    const used=new Set(slots.filter(v=>v!==null));
+    $("ch").innerHTML="";order.forEach(k=>{if(used.has(k))return;const c=el("button","btn chip",steps[k]);c.style.fontSize="22px";
+      c.onclick=()=>{const e=slots.indexOf(null);if(e>=0){slots[e]=k;hint("");draw()}};$("ch").appendChild(c)});
+    $("run").disabled=slots.includes(null);
+  };
+  const order=shuffle([0,1,2,3,4]);draw();
+  $("run").onclick=async()=>{
+    $("run").disabled=true;const sl=[...$("al").children];
+    for(let i=0;i<5;i++){
+      sl[i].classList.add("go");await sleep(550);
+      if(slots[i]!==i){sl[i].classList.remove("go");sl[i].classList.add("err");sfx("bad");
+        const w=steps[slots[i]].toLowerCase();
+        hint(`Крок ${i+1}: «${w}» ще рано або вже пізно. Подумайте, що треба зробити ${i===0?"найпершим":"після кроку «"+steps[i-1].toLowerCase()+"»"}. Натисніть на неправильні кроки, щоб їх прибрати.`);
+        await sleep(400);sl.forEach(x=>x.classList.remove("go"));$("run").disabled=false;return}
+      sl[i].classList.remove("go");sl[i].classList.add("done")}
+    win("Алгоритм правильний — аркуш паперу готовий!");
+  };
+}
+function wallQs(){
+  const L=pick([450,540,600,660,720,900]),d=L/30;
+  return [
+    {q:"Довжина Великого китайського муру з усіма гілками — 21 196 км. Округліть це число до тисяч.",o:["20 000 км","21 000 км","22 000 км"],a:"21 000 км",h:"Дивимося на цифру сотень: 1 менше за 5, тому число тисяч не змінюється.",ok:"21 196 ≈ 21 000 км."},
+    {q:`Мандрівник проходить 30 км за день. За скільки днів він пройде ділянку муру довжиною ${L} км?`,o:[`${d} днів`,`${L/10} днів`,`${d+3} днів`,`${L-30} днів`].map(x=>x.replace(/^(\d+) днів$/,(m,n)=>`${n} ${dniv(+n)}`)),a:`${d} ${dniv(d)}`,h:"Скільки разів по 30 км уміщується в цій відстані? Поділіть довжину на 30.",ok:`${L} : 30 = ${d}.`}
+  ];
+}
+function dniv(n){const a=n%10,b=n%100;if(a===1&&b!==11)return "день";if(a>=2&&a<=4&&(b<12||b>14))return "дні";return "днів"}
+const furSVG=`<svg viewBox="0 0 60 60"><path d="M8 42 C12 26 20 15 29 9 C27 22 33 19 40 7 C40 21 46 24 53 17 C51 33 42 45 26 50 C17 52 10 48 8 42Z" fill="#f4e8d2" stroke="#8a6a3a" stroke-width="3"/><path d="M19 40 C25 32 32 27 41 22 M24 46 C31 41 38 36 46 30" stroke="#c9b089" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const scrollSVG=`<svg viewBox="0 0 260 200" width="240" height="185"><rect x="40" y="26" width="180" height="148" fill="#f6ecd6" stroke="#8a6a3a" stroke-width="4"/>
+  <rect x="24" y="16" width="16" height="168" rx="7" fill="#8a3a22"/><rect x="220" y="16" width="16" height="168" rx="7" fill="#8a3a22"/>
+  <path d="M60 140 L95 80 L120 115 L145 70 L200 140Z" fill="#9aa69a" opacity=".7"/><circle cx="180" cy="60" r="12" fill="#c0392b" opacity=".8"/>
+  <ellipse cx="150" cy="158" rx="38" ry="10" fill="#b08a52"/><path d="M128 156 Q150 120 176 140" stroke="#6b4a2a" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`;
+async function hall4(){
+  await fadeTo(()=>{setLoc("Зала 4. Китай");music("m5","scene");bgImage("china",bgPlain("#5a1f1f","#24140f"));clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",1);pose("snizhok",4);pose("pugach",1);
+    /* ваза між Мурком і Сніжком — Сніжок трохи праворуч; компас-ложка праворуч на столі — Пугач теж праворуч */
+    setCx("snizhok",570);setCx("pugach",1470)});
+  addPaw(3,372,288,-15,furSVG,46);
+  await say("murko",3,"Тут мали висіти перші аркуші паперу… А залишився лише опис, і той переплутаний!");
+  await say("pugach",2,"Близько 2 000 років тому в Китаї навчилися робити папір. До того писали на бамбукових планках і на дорогому шовку.");
+  await task("4.1. Як зробити папір","Інформатика · алгоритм",(b,win)=>paperAlgo(b,win));
+  await say("murko",2,"Вийшло! Виходить, мій зошит — це подарунок з Китаю?");
+  await say("pugach",5,"Саме так! А ось макет Великого китайського муру. Разом з усіма гілками він тягнеться на 21 196 кілометрів!");
+  await task("4.2. Великий китайський мур","Математика · багатоцифрові числа, рух",(b,win)=>quiz(b,win,wallQs(),"Мур підкорено!"));
+  await say("snizhok",2,"Оце так мур! Я б ішов уздовж нього все життя…");
+  await say("pugach",2,"А на бронзовій пластині — один із перших компасів: ложка з магнітного каменю. Її ручка завжди показує на південь. Хочете перевірити, як він працює?");
+  const ch=await task("4.3. Компас-ложка","Бонус · «Я досліджую світ»",(b,win)=>{
+    b.innerHTML=`<div class="q" style="text-align:center;margin:20px 0">Бонусне завдання можна розв’язати або пропустити — як вирішить учитель.</div><div class="opts" id="o"></div>`;
+    const a=el("button","btn primary","Перевірити компас"),s=el("button","btn ghost","Пропустити");a.onclick=()=>taskEnd("yes");s.onclick=()=>taskEnd("no");$("o").append(a,s)});
+  if(ch==="yes")await task("4.3. Компас-ложка","Бонус · сторони горизонту",(b,win)=>quiz(b,win,[
+    {q:"Ручка ложки показує на південь. Куди показує її черпачок?",o:["на північ","на схід","на захід","теж на південь"],a:"на північ",h:"Черпачок — на протилежному кінці ложки. Яка сторона горизонту протилежна півдню?",ok:"Так: протилежно півдню — північ."},
+    {q:"Мурко стоїть обличчям на північ. Де від нього схід?",o:["праворуч","ліворуч","позаду","попереду"],a:"праворуч",h:"Станьте обличчям на північ: схід — з боку правої руки.",ok:"Так: обличчям на північ — схід праворуч."},
+    {q:"Сонце вранці сходить…",o:["на сході","на заході","на півночі","на півдні"],a:"на сході",h:"Згадайте, звідки щоранку з’являється Сонце.",ok:"Так, Сонце сходить на сході."}],"Компас працює!"));
+  await say("pugach",6,"Залишилася табличка. Що подарував світові Давній Китай?");
+  await task("Поверни табличку","Що подарувала цивілізація",(b,win)=>labelTask(b,win,{
+    pic:scrollSVG,ok:"Давній Китай. Папір і компас",bad:["Давня Греція. Театр","Месопотамія. Колесо"],
+    hint:"Згадайте, що ми сьогодні робили за алгоритмом і що лежить на бронзовій пластині."}));
+  await hallEnd(3,"Подивіться на фарфорову вазу — за неї щось зачепилося! Натисніть!",
+    "Клаптик кремового хутра! Хтось пухнастий протискувався між експонатами…","Далі — Греція! Вперед!");
+}
+
+/* ============ ЗАЛА 5. ГРЕЦІЯ ============ */
+function raceQs(){
+  const t1=pick([16,24,32,48]),v1=192/t1;
+  const v2=pick([4,6,8,12].filter(v=>v!==v1)),t2=192/v2;
+  const win=t1<t2?"Перший":"Другий";
+  return [
+    {q:`Перший бігун пробіг стадій (192 м) за ${t1} с. З якою швидкістю він біг?`,o:[`${v1} м/с`,`${v1*2} м/с`,`${192-t1} м/с`,`${v1+2} м/с`],a:`${v1} м/с`,h:"Швидкість = відстань : час. Поділіть 192 на кількість секунд.",ok:`192 : ${t1} = ${v1} м/с.`},
+    {q:`Другий бігун біг зі швидкістю ${v2} м/с. За скільки секунд він пробіг стадій?`,o:[`${t2} с`,`${t2+8} с`,`${t2*2} с`,`${t2-4} с`].filter((x,i,a)=>a.indexOf(x)===i),a:`${t2} с`,h:"Час = відстань : швидкість. Поділіть 192 на швидкість.",ok:`192 : ${v2} = ${t2} с.`},
+    {q:`Хто переміг у забігу: перший (${t1} с) чи другий (${t2} с)?`,o:["Перший","Другий"],a:win,h:"Переміг той, хто пробіг ту саму відстань за менший час.",ok:`${win} — у нього менше секунд!`}
+  ];
+}
+function greekWords(b,win){
+  const greek=shuffle(["театр","алфавіт","географія","математика","олімпіада","музей"]).slice(0,4);
+  const other=["сонце","вода","вишня","рука"];
+  const all=shuffle([...greek,...other]);const sel=new Set();
+  b.innerHTML=`<div class="q" style="text-align:center">Які слова прийшли до нас із грецької мови? Позначте всі, а потім натисніть «Перевірити».</div>
+    <div class="chips" id="ch" style="margin:16px 0 20px"></div><div class="opts"><button class="btn primary" id="chk">Перевірити</button></div>`;
+  all.forEach(w=>{const c=el("button","btn chip",w);c.onclick=()=>{if(c.disabled)return;sel.has(w)?(sel.delete(w),c.classList.remove("pick")):(sel.add(w),c.classList.add("pick"));hint("")};$("ch").appendChild(c)});
+  $("chk").onclick=()=>{
+    const wrong=[...sel].filter(w=>other.includes(w)),miss=greek.filter(w=>!sel.has(w));
+    document.querySelectorAll("#ch .chip").forEach(c=>{const w=c.textContent;c.classList.remove("ok","bad");
+      if(sel.has(w)&&greek.includes(w)){c.classList.remove("pick");c.classList.add("ok");c.disabled=true}else if(sel.has(w)){void c.offsetWidth;c.classList.add("bad");sfx("bad")}});
+    if(!wrong.length&&!miss.length){win("Так! Усі ці слова — грецькі.")}
+    else if(wrong.length)hint(`«${wrong[0]}» — наше давнє слово, не грецьке. Зніміть позначку.`);
+    else hint(`Знайдено не всі. Підказка: шукайте назви наук, свят і закладів — їх часто дали греки.`);
+  };
+}
+function raceOrder(b,win){
+  const names=["Леонід","Ніко","Тео","Філіп"],right=["Леонід","Тео","Ніко","Філіп"];const slots=[null,null,null,null];
+  b.innerHTML=`<div class="q" style="text-align:center;margin-bottom:6px">Тео прибіг раніше за Ніко, але пізніше за Леоніда. Філіп — останній.<br>Розставте бігунів на місця 1–4.</div>
+    <div class="podium" id="pd"></div><div class="chips" id="ch"></div><div class="opts"><button class="btn primary" id="chk" disabled>Перевірити</button></div>`;
+  const draw=()=>{
+    $("pd").innerHTML=slots.map((v,i)=>`<div class="pslot p${i+1}${v?" full":""}" data-i="${i}"><span>${v||"?"}</span><b>${i+1}</b></div>`).join("");
+    $("pd").querySelectorAll(".pslot.full").forEach(d=>d.onclick=()=>{slots[+d.dataset.i]=null;hint("");draw()});
+    $("ch").innerHTML="";names.forEach(n=>{if(slots.includes(n))return;const c=el("button","btn chip",n);c.onclick=()=>{const e=slots.indexOf(null);if(e>=0){slots[e]=n;hint("");draw()}};$("ch").appendChild(c)});
+    $("chk").disabled=slots.includes(null);
+  };draw();
+  $("chk").onclick=()=>{const bad=slots.findIndex((v,i)=>v!==right[i]);
+    if(bad<0){$("pd").querySelector(".p1").insertAdjacentHTML("afterbegin",`<div class="wreath">${icon("wreath","#3d8a3a")}</div>`);win("Леонід отримує оливковий вінок!")}
+    else hint(bad===3||slots[3]!=="Філіп"?"Почніть з того, що відомо точно: Філіп — останній, на 4-му місці.":"Тео стоїть між Леонідом і Ніко. Хто ж тоді перший?")};
+}
+const eyesSVG=`<svg viewBox="0 0 60 24"><g><ellipse cx="14" cy="12" rx="9" ry="7" fill="#dcff8c"/><circle cx="15" cy="12" r="3.6" fill="#1b1a0e"/><circle cx="17" cy="9.5" r="1.4" fill="#fff"/>
+  <ellipse cx="46" cy="12" rx="9" ry="7" fill="#dcff8c"/><circle cx="47" cy="12" r="3.6" fill="#1b1a0e"/><circle cx="49" cy="9.5" r="1.4" fill="#fff"/></g></svg>`;
+const amphoraSVG=`<svg viewBox="0 0 200 240" width="180" height="216"><path d="M70 20 H130 V40 Q170 60 166 120 Q160 190 116 226 H84 Q40 190 34 120 Q30 60 70 40Z" fill="#c8662e" stroke="#2a1408" stroke-width="5"/>
+  <path d="M70 46 Q40 50 44 90 M130 46 Q160 50 156 90" stroke="#2a1408" stroke-width="7" fill="none"/><rect x="40" y="100" width="120" height="70" fill="#2a1408" opacity=".9"/>
+  ${[0,1].map(i=>`<g transform="translate(${70+i*44} 108)" fill="#c8662e"><circle cx="8" cy="6" r="6"/><path d="M8 12 L4 34 L-6 52 M4 34 L14 52 M8 16 L-4 28 M8 16 L20 22" stroke="#c8662e" stroke-width="5" fill="none"/></g>`).join("")}</svg>`;
+async function hall5(){
+  await fadeTo(()=>{setLoc("Зала 5. Греція");music("m6","scene");bgImage("greece",bgPlain("#3a3f6b","#1e2033"));clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",1);pose("snizhok",4);pose("pugach",1);
+    /* праворуч на передньому плані темна тумба — Пугач стає трохи лівіше, щоб не «висіти» над нею */
+    setCx("snizhok",480);setCx("pugach",1330)});
+  addPaw(4,1050,424,0,`<div class="eyes">${eyesSVG}</div>`,46);
+  await say("snizhok",2,"Дивіться, на цій амфорі намальовані бігуни!");
+  await say("pugach",2,"Це учасники Олімпійських ігор. Уперше їх провели в Олімпії майже 2 800 років тому — і вже тоді раз на 4 роки, як і сьогодні. Переможець отримував не медаль, а оливковий вінок.");
+  await say("pugach",1,"Головний забіг був на один стадій — це близько 192 метрів.");
+  await task("5.1. Олімпійський забіг","Математика · швидкість, час, відстань",(b,win)=>quiz(b,win,raceQs(),"Забіг пораховано!"));
+  await say("murko",2,"А я б переміг у забігу котів!");
+  await say("pugach",2,"А ці маски — з давньогрецького театру. Греки подарували світові театр, а ще — багато слів, якими ми говоримо щодня.");
+  await task("5.2. Грецькі слова","Українська мова · походження слів",(b,win)=>greekWords(b,win));
+  await say("pugach",5,"Слово «алфавіт» — це назви перших двох грецьких літер, альфа і бета. А «музей» греки називали дім муз — богинь мистецтв і наук. Виходить, наш музей — теж дарунок Греції!");
+  await say("pugach",2,"А ось і оливковий вінок. Хочете дізнатися, хто з чотирьох бігунів його отримав?");
+  const ch=await task("5.3. Хто прибіг першим","Бонус · логіка",(b,win)=>{
+    b.innerHTML=`<div class="q" style="text-align:center;margin:20px 0">Бонусне завдання можна розв’язати або пропустити — як вирішить учитель.</div><div class="opts" id="o"></div>`;
+    const a=el("button","btn primary","Розгадати"),s=el("button","btn ghost","Пропустити");a.onclick=()=>taskEnd("yes");s.onclick=()=>taskEnd("no");$("o").append(a,s)});
+  if(ch==="yes")await task("5.3. Хто прибіг першим","Бонус · логіка",(b,win)=>raceOrder(b,win));
+  await say("pugach",6,"Залишилася табличка. Що подарувала світові Давня Греція?");
+  await task("Поверни табличку","Що подарувала цивілізація",(b,win)=>labelTask(b,win,{
+    pic:amphoraSVG,ok:"Давня Греція. Олімпійські ігри й театр",bad:["Давній Рим. Дороги","Давній Китай. Шовк"],
+    hint:"Згадайте, хто намальований на амфорі і що лежить у вітринах цієї зали."}));
+  await hallEnd(4,"Ой… маска у вітрині щойно кліпнула! Там хтось є? Натисніть!",
+    "Очі! Хтось сховався за маскою — і одразу втік. Мабуть, уже в останній залі…","Залишилася остання зала — Рим! Вперед!");
+}
+
+/* ============ ЗАЛА 6. РИМ ============ */
+function roadQs(){
+  const d=pick([5,6,7,8,9]),D=pick([180,210,240,270,300]);
+  return [
+    {q:`Римські воїни проходили за день близько 30 км. Скільки кілометрів вони пройдуть за ${d} ${dniv(d)}?`,o:[`${30*d} км`,`${30+d} км`,`${30*d+30} км`,`${3*d} км`],a:`${30*d} км`,h:"Відстань = швидкість × час: 30 км щодня, і так кілька днів.",ok:`30 × ${d} = ${30*d} км.`},
+    {q:`Між двома містами ${D} км. За скільки днів дійдуть воїни, якщо проходять 30 км за день?`,o:[`${D/30} ${dniv(D/30)}`,`${D/30+2} ${dniv(D/30+2)}`,`${D/10} ${dniv(D/10)}`,`${D-30} ${dniv(D-30)}`],a:`${D/30} ${dniv(D/30)}`,h:"Час = відстань : швидкість. Поділіть відстань на 30.",ok:`${D} : 30 = ${D/30}.`}
+  ];
+}
+function aqueduct(b,win){
+  const B=pick([1000,1200,1250,1500]),h=pick([4,6,8]),T=B*h,f=pick([20,25,30,40,50].filter(x=>T%x===0)),each=T/f;
+  b.innerHTML=`<div class="q">Акведук приносить у місто <b>${fmt(B)} відер</b> води щогодини. Цю воду порівну розподіляють на <b>${f} фонтанів</b>.</div>
+    <div style="margin-top:12px">
+     <div class="numrow"><span>Скільки відер за ${h} год?</span><input id="i1" inputmode="numeric" autocomplete="off"><button class="btn" id="c1">Перевірити</button></div>
+     <div class="numrow"><span>Скільки відер дістанеться кожному фонтану?</span><input id="i2" inputmode="numeric" autocomplete="off" disabled><button class="btn" id="c2" disabled>Перевірити</button></div>
+    </div><div class="prog" style="margin-top:8px">Числа задачі змінюються при кожному запуску.</div>`;
+  const num=v=>parseInt(String(v).replace(/[\s ]/g,""),10);
+  const chk=(inp,val,ok,bad)=>{if(num(inp.value)===val){inp.classList.remove("bad");inp.classList.add("ok");inp.disabled=true;ok()}else{inp.classList.remove("bad");void inp.offsetWidth;inp.classList.add("bad");sfx("bad");hint(bad)}};
+  const s1=()=>chk($("i1"),T,()=>{$("c1").disabled=true;$("i2").disabled=false;$("c2").disabled=false;$("i2").focus();hint(`Так: ${fmt(B)} × ${h} = ${fmt(T)} відер.`,"good")},"Скільки відер щогодини, стільки й помножте на кількість годин.");
+  const s2=()=>chk($("i2"),each,()=>{$("c2").disabled=true;win(`${fmt(T)} : ${f} = ${fmt(each)} відер кожному фонтану!`)},`Усю воду (${fmt(T)} відер) поділіть порівну на ${f} фонтанів.`);
+  $("c1").onclick=s1;$("c2").onclick=s2;$("i1").onkeydown=e=>{if(e.key==="Enter")s1()};$("i2").onkeydown=e=>{if(e.key==="Enter")s2()};
+  setTimeout(()=>$("i1").focus(),350);
+}
+function archSVG(w=300,hk=false){
+  const cx=150,cy=190,r1=70,r2=125,n=7;let s="";
+  for(let i=0;i<n;i++){const a1=Math.PI-i*Math.PI/n,a2=Math.PI-(i+1)*Math.PI/n,k=i===3;
+    const P=[[r2,a1],[r2,a2],[r1,a2],[r1,a1]].map(([r,a])=>`${(cx+r*Math.cos(a)).toFixed(1)},${(cy-r*Math.sin(a)).toFixed(1)}`).join(" ");
+    s+=`<polygon points="${P}" fill="${k&&hk?"#ffe08a":"#e3d3b0"}" stroke="#7a5a35" stroke-width="4"/>`;
+    if(k)s+=`<text x="${cx}" y="${cy-r2+30}" text-anchor="middle" font-size="26" font-weight="900" fill="#7b2335" font-family="Nunito,sans-serif">${hk?"":"?"}</text>`}
+  s+=`<rect x="${cx-r2}" y="${cy}" width="${r2-r1}" height="44" fill="#d8c7a2" stroke="#7a5a35" stroke-width="4"/><rect x="${cx+r1}" y="${cy}" width="${r2-r1}" height="44" fill="#d8c7a2" stroke="#7a5a35" stroke-width="4"/>`;
+  return `<svg viewBox="0 0 300 240" width="${w}" height="${w*0.8}" style="display:block;margin:0 auto 12px">${s}</svg>`;
+}
+async function hall6(){
+  await fadeTo(()=>{setLoc("Зала 6. Рим");music("m7","scene");bgImage("rome",bgPlain("#5a3424","#24160f"));clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",1);pose("snizhok",4);pose("pugach",1);
+    /* макет акведука одразу за Сніжком — Сніжок стає ближче до Мурка */
+    setCx("snizhok",425)});
+  addPaw(5,604,568,-20,null,40);
+  await say("murko",3,"Дивний камінь із написом… Навіщо його ставили біля дороги?");
+  await say("pugach",2,"Це придорожній камінь. Римляни ставили такі камені через кожну римську милю — це тисяча подвійних кроків, близько 1 км 480 м. Римські дороги були такі міцні, що деякими їздять досі!");
+  await task("6.1. Римськими дорогами","Математика · рух",(b,win)=>quiz(b,win,roadQs(),"Дорогу пораховано!"));
+  await say("pugach",1,"А це макет акведука — кам’яного мосту-водогону. Вода текла ним із гір до міста сама, бо жолоб трохи спускався вниз.");
+  await task("6.2. Акведук","Математика · складена задача",(b,win)=>aqueduct(b,win));
+  await say("murko",2,"Вода сама приходить у місто — як у кран!");
+  await say("pugach",2,"Подивіться на велику арку над нами — вона складена з каменів. Хочете розгадати її секрет?");
+  const ch=await task("6.3. Замковий камінь","Бонус · логіка",(b,win)=>{
+    b.innerHTML=`<div class="q" style="text-align:center;margin:20px 0">Бонусне завдання можна розв’язати або пропустити — як вирішить учитель.</div><div class="opts" id="o"></div>`;
+    const a=el("button","btn primary","Розгадати"),s=el("button","btn ghost","Пропустити");a.onclick=()=>taskEnd("yes");s.onclick=()=>taskEnd("no");$("o").append(a,s)});
+  if(ch==="yes"){
+    await task("6.3. Замковий камінь","Бонус · логіка",(b,win)=>quiz(b,win,[
+      {pic:archSVG(),q:"Без якого каменя арка завалиться?",o:["Без верхнього, у центрі","Без лівого нижнього","Без правого нижнього","Без жодного — вона й так стоїть"],a:"Без верхнього, у центрі",
+       h:"Подумайте, який камінь тримає обидві половини арки разом, ніби замок.",ok:"Так! Верхній камінь називають замковим — він «замикає» арку."}],"Секрет арки розгадано!"));
+    const g=el("div","keyglow");$("props").appendChild(g);sfx("magic");setTimeout(()=>g.remove(),5200);
+    await say("pugach",5,"Ось він — замковий камінь, угорі нашої арки! Без нього вона б розсипалася.");
+  }
+  await say("pugach",1,"А ще римляни вміли робити бетон. Бетонний купол Пантеону в Римі стоїть уже майже 1 900 років!");
+  await say("pugach",6,"Остання табличка! Що подарував світові Давній Рим?");
+  await task("Поверни табличку","Що подарувала цивілізація",(b,win)=>labelTask(b,win,{
+    pic:archSVG(220,true),ok:"Давній Рим. Дороги, акведуки й арки",bad:["Давня Греція. Театр","Трипілля. Розписна кераміка"],
+    hint:"Згадайте, що стоїть у цій залі: придорожній камінь, акведук і велика арка."}));
+  await hallEnd(5,"Подивіться на макет акведука — на ньому щось є! Натисніть!",
+    "Слід просто на макеті акведука! І ще один… Вони ведуть кудись далі.","Усі шість печаток! Тепер має відчинитися центральна зала!");
+}
+
+/* ============ ФІНАЛ ============ */
+const PAIRS=[
+  ["Трипільський розписний горщик","Розмальована керамічна чашка"],
+  ["Єгипетський календар на 365 днів","Календар на стіні"],
+  ["Табличка з лічбою шістдесятками","Годинник: 60 хвилин"],
+  ["Колесо з Месопотамії","Велосипед"],
+  ["Китайський папір","Шкільний зошит"],
+  ["Компас-ложка","Компас у телефоні"],
+  ["Оливковий вінок переможця","Олімпійська медаль"],
+  ["Римський акведук","Водопровідний кран"]];
+function giftsMatch(b,win){
+  const P=shuffle(PAIRS).slice(0,6);let left=null,done=0;
+  b.innerHTML=`<div class="q" style="text-align:center">З’єднайте давній дарунок із річчю, якою ми користуємося сьогодні: спершу — ліворуч, потім — праворуч.</div>
+    <div class="match"><div class="mcol" id="ml"><div class="mh">Давнина</div></div><div class="mcol" id="mr"><div class="mh">Сьогодні</div></div></div>`;
+  shuffle(P).forEach(([a])=>{const x=el("button","btn mi",a);x.dataset.a=a;x.onclick=()=>{if(x.disabled)return;document.querySelectorAll("#ml .mi").forEach(y=>y.classList.remove("pick"));x.classList.add("pick");left=a;hint("")};$("ml").appendChild(x)});
+  shuffle(P).forEach(([a,m])=>{const x=el("button","btn mi",m);x.onclick=()=>{
+    if(x.disabled)return;if(!left){hint("Спершу оберіть давній дарунок ліворуч.");return}
+    const pair=P.find(p=>p[0]===left);
+    if(pair[1]===m){done++;const L=document.querySelector(`#ml .mi[data-a="${CSS.escape(left)}"]`);[L,x].forEach(y=>{y.classList.remove("pick");y.classList.add("ok");y.disabled=true;y.dataset.n=done});left=null;
+      if(done===P.length)win("Усі пари з’єднано!");else hint("Так! Наступна пара.","good")}
+    else{x.classList.remove("bad");void x.offsetWidth;x.classList.add("bad");sfx("bad");hint("Подумайте: для чого служила давня річ? Яка сьогоднішня річ робить те саме?")}};$("mr").appendChild(x)});
+}
+function diplomaSVG(){
+  const n=ST.prints.reduce((a,b)=>a+b,0);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" font-family="Nunito,Segoe UI,Arial,sans-serif">
+   <rect width="1200" height="800" fill="#f6e9c8"/><rect x="24" y="24" width="1152" height="752" rx="30" fill="none" stroke="#9c7a45" stroke-width="8"/>
+   <rect x="44" y="44" width="1112" height="712" rx="22" fill="none" stroke="#c9a24a" stroke-width="3" stroke-dasharray="14 10"/>
+   <text x="600" y="150" text-anchor="middle" font-size="64" font-weight="900" fill="#7b2335">ДИПЛОМ</text>
+   <text x="600" y="228" text-anchor="middle" font-size="46" font-weight="900" fill="#3a2614">Юний доглядач музею</text>
+   <text x="600" y="300" text-anchor="middle" font-size="28" font-weight="700" fill="#5a3a1e">за порятунок виставки «Дарунки давніх цивілізацій»</text>
+   <text x="600" y="342" text-anchor="middle" font-size="28" font-weight="700" fill="#5a3a1e">за одну ніч у музеї</text>
+   ${HALLS.map((h,i)=>`<g transform="translate(${180+i*150} 400)"><circle cx="45" cy="45" r="52" fill="none" stroke="#a82a2a" stroke-width="5"/><g transform="translate(8 8) scale(.74)">${ICON[h.icon]("#a82a2a")}</g>
+     <text x="45" y="134" text-anchor="middle" font-size="22" font-weight="800" fill="#3a2614">${h.name}</text></g>`).join("")}
+   <text x="600" y="610" text-anchor="middle" font-size="26" font-weight="700" fill="#5a3a1e">Знайдено слідів Шустрика: ${n} з 6</text>
+   <text x="200" y="700" font-size="26" font-weight="800" fill="#3a2614">Пан Пугач, доглядач музею</text>
+   <text x="1000" y="700" text-anchor="end" font-size="26" font-weight="800" fill="#3a2614">Мурко і Сніжок</text></svg>`;
+}
+function diplomaTask(b,win){
+  b.innerHTML=`<div class="dipl">${diplomaSVG()}</div><div class="opts" style="margin-top:14px"><button class="btn" id="dsave">Зберегти картинкою</button><button class="btn primary" id="dnext">Далі ▶</button></div>`;
+  $("dnext").onclick=()=>taskEnd("ok");
+  $("dsave").onclick=async()=>{
+    try{const svg=new Blob([diplomaSVG()],{type:"image/svg+xml"}),url=URL.createObjectURL(svg),im=new Image();
+      await new Promise((r,j)=>{im.onload=r;im.onerror=j;im.src=url});
+      const c=document.createElement("canvas");c.width=1200;c.height=800;c.getContext("2d").drawImage(im,0,0);URL.revokeObjectURL(url);
+      /* в артефакті Claude файл зберігається через можливість downloads; у звичайному браузері — через посилання */
+      const dl=window.claude&&window.claude.use?await window.claude.use("downloads").catch(()=>null):null;
+      if(dl){const blob=await new Promise(r=>c.toBlob(r,"image/png"));
+        try{await dl.save({filename:"dyplom-muzei.png",data:blob});hint("Диплом збережено!","good")}
+        catch(e){hint(e&&e.code==="declined"?"Збереження скасовано.":"Не вдалося зберегти — зробіть знімок екрана.")}
+        return}
+      const a=document.createElement("a");a.download="dyplom-muzei.png";a.href=c.toDataURL("image/png");document.body.appendChild(a);a.click();a.remove();
+      hint("Диплом збережено в «Завантаження». Якщо файл не з’явився — зробіть знімок екрана.","good")}
+    catch(e){hint("Тут браузер не дозволяє зберегти файл — зробіть знімок екрана.")}};
+}
+async function finale(){
+  /* центральна зала на світанку */
+  sfx("creak");
+  await fadeTo(()=>{setLoc("Центральна зала");music("m8","scene");bgImage("central",bgPlain("#e8c9a8","#7a5a40"));clearProps();castOnly(["murko","snizhok","pugach"]);pose("murko",3);pose("snizhok",1);pose("pugach",1);setCx("pugach",1280)});
+  await say(null,0,"Двері центральної зали повільно відчиняються. За вікнами вже світає…");
+  await say("pugach",2,"У цій залі давні дарунки стоять поруч із сучасними речами. Але й тут пари розсипалися!");
+  await task("Що нам подарували","Підсумок · усі предмети",(b,win)=>giftsMatch(b,win));
+  await say("murko",2,"Виходить, давні люди досі живуть у наших речах!");
+  const n=ST.prints.reduce((a,b)=>a+b,0);
+  await say("pugach",4,"Але в одній вітрині досі порожньо — бракує останнього експоната…");
+  await say("snizhok",5,n>=6?"Тссс… Ми знайшли всі шість слідів — і всі вони ведуть до дверей комори! Там хтось шурхоче…":(n?`Ми знайшли ${n} ${n===1?"слід":n<5?"сліди":"слідів"} з 6 — а я ще бачив сліди он там, біля дверей комори!`:"Я бачив крихітні сліди он там, біля дверей комори!")+" Тссс… Там хтось шурхоче…");
+  /* комора */
+  sfx("creak");
+  await fadeTo(()=>{setLoc("Комора");bgImage("storeroom",bgPlain("#3a2d4a","#1a1422"));castOnly(["murko","snizhok","pugach"]);pose("murko",3);pose("snizhok",5);pose("pugach",3);setCx("snizhok",470);setCx("pugach",1290);setCx("shustryk",820)});
+  await say(null,0,"У коморі — маленький «музей»: коробки розмальовані спіралями й ієрогліфами, на них — картонні піраміди, храм і справжня амфора. А за коробкою хтось ховається…");
+  sfx("rustle");show("shustryk",4);
+  await say("murko",3,"Хто це?");
+  await say("shustryk",4,"Я… Шустрик. Вибачте! Я не хотів нічого зіпсувати. Речі такі гарні й давні, що мені дуже захотілося свій власний музей. Я будував його з коробок, позичав експонати… і все переплутав.");
+  const c=await task("Як нам учинити?","Вибір класу",(b,win)=>{
+    b.innerHTML=`<div class="q" style="text-align:center;margin:16px 0">Мурко питає клас: що скажемо Шустрику?</div><div class="labels" id="o"></div>`;
+    const a=el("button","btn plank","Пробачити й запросити допомагати"),s=el("button","btn plank","Показати йому, що де має стояти");
+    a.onclick=()=>taskEnd("a");s.onclick=()=>taskEnd("b");$("o").append(a,s)});
+  if(c==="b")await say("snizhok",2,"Ходімо, ми тобі покажемо! Ми вже знаємо всі шість зал — і що в кожній має лежати.");
+  else await say("murko",2,"Ми не сердимося! Краще допомагай нам — ти ж так любиш давні речі.");
+  await say("shustryk",5,"Дякую! Тоді я зараз же поверну останній експонат на місце.");
+  await say("pugach",1,"Знаєш, Шустрику, музею саме такий помічник і потрібен — той, хто любить давні речі. Хочеш стати помічником екскурсовода?");
+  await say("shustryk",6,"Справді?! Так! А таблички я тепер писатиму без помилок!");
+  /* ранок, відкриття */
+  await fadeTo(()=>{setLoc("Хол музею · 9:00");music("m9","bright");setTimeout(()=>sfx("bell"),600);bgImage("lobby-day",bgLobby(false),bannerText());castOnly(["murko","snizhok","pugach","shustryk"]);pose("murko",2);pose("snizhok",2);pose("pugach",5);pose("shustryk",7);setCx("pugach",1380);setCx("shustryk",1050)});
+  await say(null,0,"Годинник у холі показує 9:00. Крізь вікна ллється ранкове сонце, і двері музею відчиняються.");
+  await say("pugach",5,"Виставку «Дарунки давніх цивілізацій» відкрито! І перші її відвідувачі — це ви, наші рятівники.");
+  await say("shustryk",7,"А я тепер — помічник екскурсовода! Ласкаво просимо!");
+  setTimeout(()=>sfx("fanfare"),250);
+  await task("Диплом","Нагорода",(b,win)=>diplomaTask(b,win));
+  /* тизер */
+  await fadeTo(()=>{setLoc("");music("m10","scene");$("ticket").classList.remove("on");$("prints").classList.remove("on");
+    bgImage("attic",bgPlain("#7a5030","#3a2414"),`<g class="glint" transform="translate(965 470)"><circle r="26" fill="#fff6c8" opacity=".55"/><path d="M0 -38 L6 -6 L38 0 L6 6 L0 38 L-6 6 L-38 0 L-6 -6Z" fill="#fffbe6"/></g>`);
+    castOnly(["murko"]);setCx("murko",600);pose("murko",4)});
+  await say(null,0,"Вечір. Мурко вдома піднімається на горище, щоб сховати квиток із печатками в коробку зі скарбами.");
+  await say("murko",4,"Шкода, що не можна побачити, якою була та Олександрійська бібліотека…");
+  sfx("chime");
+  await say("murko",3,"Стоп. А що це там блищить на поличці?");
+  await fadeTo(()=>{castOnly([]);dlgHide();$("bg").innerHTML="";
+    const e=el("div","endscr",`<p>Але це вже зовсім інша історія…</p><button class="btn primary" id="again">Пройти ще раз ↻</button>`);$("props").appendChild(e);
+    $("again").onclick=()=>location.reload()});
+  sfx("magic");
+}
+
+/* ============ ЗАЛИ, ЩО ГОТУЮТЬСЯ ============ */
+async function hallSoon(i){
+  setLoc("Хол музею");
+  await say("pugach",4,`Зала «${HALLS[i].name}» ще готується до відкриття… Далі буде!`);
+}
+
+/* ============ СЦЕНАРІЙ ============ */
+async function lobbyPlan(){
+  await fadeTo(()=>{setLoc("Хол музею");music("m1","scene");bgImage("lobby-mess",bgLobby(true),bannerText()+pawTrail());clearProps();castOnly(["murko","pugach"]);pose("murko",1);pose("pugach",1)});
+}
+async function main(){
+  const q=new URLSearchParams(location.search).get("start");
+  $("startScr").remove();
+  /* ?start=hall2 — одразу до потрібної зали (для перевірки): попередні зали вважаються пройденими */
+  const m=/^hall(\d)$/.exec(q||"")||(q==="final"?[0,"7"]:null);
+  if(!m){await intro()}else{for(let k=0;k<+m[1]-1;k++){ST.stamps[k]=1;ST.prints[k]=1;$("slot"+k).classList.add("done")}
+    hudOn();updPrints();bgImage("lobby-mess",bgLobby(true),bannerText()+pawTrail());castOnly(["murko","pugach"])}
+  const HALL_FN=[hall1,hall2,hall3,hall4,hall5,hall6];
+  while(ST.stamps.indexOf(0)>=0){
+    castOnly(["murko","pugach"]);
+    let i=await planTask();
+    if(i==="skip")i=ST.stamps.indexOf(0);
+    if(HALL_FN[i]){await HALL_FN[i]();await lobbyPlan()}else{await hallSoon(i);break}
+  }
+  if(q==="final"){await finale();return}
+  castOnly(["murko","pugach"]);
+  await say("pugach",5,"Усі шість печаток! Центральна зала відчиняється…");
+  await planTask();
+  await finale();
+}
+$("sndBtn").innerHTML=SND.on?SND_ON:SND_OFF;$("musBtn").innerHTML=MUS.on?MUS_ON:MUS_OFF;
+$("sndBtn").onclick=e=>{e.stopPropagation();setSound(!SND.on)};
+$("musBtn").onclick=e=>{e.stopPropagation();setMusic(!MUS.on)};
+$("startBtn").onclick=()=>{audioInit();music("m1","scene");main()};
+</script>
+</body>
+</html>
