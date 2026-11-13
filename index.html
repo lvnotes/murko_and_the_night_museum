@@ -362,7 +362,19 @@ for(const k in CAST){
   CAST[k].n.forEach(n=>{const p=new Image();p.src=IMG+k+"-"+n+".webp"});
 }
 const SUB={}; /* заміни спрайтів, якщо якийсь тимчасово не готовий: {pugach:{2:1}} */
-function pose(k,n){n=(SUB[k]&&SUB[k][n])||n;const e=CAST[k].el,src=IMG+k+"-"+n+".webp";if(!e.src.endsWith(src))e.src=src}
+/* Мурко і Сніжок: після переляку чи здивування заспокоюються, щойно заговорить хтось інший.
+   scared — пози переляку/здивування; calm — спокійна поза в цій сцені
+   (у Сніжка 1 без ліхтарика або 4 з ліхтариком, у Мурка 1).
+   hold — якщо переляк задуманий надовше: тримаємо його, доки не заговорить вказаний герой */
+const EMO={murko:{scared:[3],calm:1,hold:null},snizhok:{scared:[3,5],calm:1,hold:null}};
+function calmDown(speaker){
+  if(!speaker)return;
+  for(const k in EMO){const e=EMO[k];
+    if(k===speaker||!CAST[k].el.classList.contains("on")||!e.scared.includes(CAST[k].cur))continue;
+    if(e.hold&&speaker!==e.hold)continue;
+    e.hold=null;pose(k,e.calm);}
+}
+function pose(k,n){n=(SUB[k]&&SUB[k][n])||n;CAST[k].cur=n;if(k==="snizhok"&&(n===1||n===4))EMO.snizhok.calm=n;const e=CAST[k].el,src=IMG+k+"-"+n+".webp";if(!e.src.endsWith(src))e.src=src}
 function show(k,n){if(n)pose(k,n);CAST[k].el.classList.add("on");CAST[k].sh.classList.add("on")}
 function hide(k){CAST[k].el.classList.remove("on","talk");CAST[k].sh.classList.remove("on")}
 function setCx(k,cx){CAST[k].el.style.left=cx+"px";CAST[k].sh.style.left=(cx+CAST[k].sx)+"px"}
@@ -380,6 +392,7 @@ $("fsBtn").onclick=e=>{e.stopPropagation();const d=document;try{if(!d.fullscreen
 
 let hooted=false;
 function say(who,n,text,opt={}){
+  calmDown(who);
   if(who==="pugach"&&!hooted){hooted=true;setTimeout(()=>sfx("hoot"),150)}
   for(const k in CAST)CAST[k].el.classList.remove("talk");
   const nm=$("dlgName"),tx=$("dlgText");
@@ -1219,7 +1232,7 @@ async function finale(){
   await say("snizhok",5,n>=6?"Тссс… Ми знайшли всі шість слідів — і всі вони ведуть до дверей комори! Там хтось шурхоче…":(n?`Ми знайшли ${n} ${n===1?"слід":n<5?"сліди":"слідів"} з 6 — а я ще бачив сліди он там, біля дверей комори!`:"Я бачив крихітні сліди он там, біля дверей комори!")+" Тссс… Там хтось шурхоче…");
   /* комора */
   sfx("creak");
-  await fadeTo(()=>{setLoc("Комора");bgImage("storeroom",bgPlain("#3a2d4a","#1a1422"));castOnly(["murko","snizhok","pugach"]);pose("murko",3);pose("snizhok",5);pose("pugach",3);setCx("snizhok",470);setCx("pugach",1290);setCx("shustryk",820)});
+  await fadeTo(()=>{setLoc("Комора");bgImage("storeroom",bgPlain("#3a2d4a","#1a1422"));castOnly(["murko","snizhok","pugach"]);pose("murko",3);EMO.murko.hold="shustryk";EMO.snizhok.calm=4;pose("snizhok",5);EMO.snizhok.hold="shustryk";pose("pugach",3);setCx("snizhok",470);setCx("pugach",1290);setCx("shustryk",820)});
   await say(null,0,"У коморі — маленький «музей»: коробки розмальовані спіралями й ієрогліфами, на них — картонні піраміди, храм і справжня амфора. А за коробкою хтось ховається…");
   sfx("rustle");show("shustryk",4);
   await say("murko",3,"Хто це?");
